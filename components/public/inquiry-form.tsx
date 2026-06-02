@@ -15,7 +15,7 @@ import { inquirySchema } from "@/lib/validation";
 
 type InquiryFormValues = z.infer<typeof inquirySchema>;
 
-export function InquiryForm({ compact = false }: { compact?: boolean }) {
+export function InquiryForm({ compact = false, hidePhotoUpload = false }: { compact?: boolean; hidePhotoUpload?: boolean }) {
   const [successRef, setSuccessRef] = useState<string | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -130,18 +130,20 @@ export function InquiryForm({ compact = false }: { compact?: boolean }) {
         {...register("problem_description")}
         error={errors.problem_description?.message}
       />
-      <label className="grid gap-2 rounded-lg border border-dashed border-line bg-slate-50 p-4 text-sm font-semibold text-ink">
-        <span className="flex items-center gap-2">
-          <Upload className="h-4 w-4 text-primary-700" />
-          Photo upload optional
-        </span>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
-          className="min-h-11 w-full max-w-full text-sm file:mr-3 file:min-h-11 file:rounded-md file:border-0 file:bg-primary-100 file:px-3 file:py-2 file:font-bold file:text-primary-900"
-        />
-      </label>
+      {!hidePhotoUpload ? (
+        <label className="grid gap-2 rounded-lg border border-dashed border-line bg-slate-50 p-4 text-sm font-semibold text-ink">
+          <span className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-primary-700" />
+            Photo upload optional
+          </span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            className="min-h-11 w-full max-w-full text-sm file:mr-3 file:min-h-11 file:rounded-md file:border-0 file:bg-primary-100 file:px-3 file:py-2 file:font-bold file:text-primary-900"
+          />
+        </label>
+      ) : null}
       <div className={compact ? "flex justify-end" : "grid gap-3 border-t border-line pt-2 md:flex md:items-center md:justify-between"}>
         {!compact ? <p className="mb-3 text-sm font-medium text-muted md:mb-0">Your information is securely submitted to the service desk.</p> : null}
         <Button type="submit" size="lg" disabled={isSubmitting}>
