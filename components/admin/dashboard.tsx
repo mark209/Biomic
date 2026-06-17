@@ -31,6 +31,14 @@ type Quotation = Database["public"]["Tables"]["quotations"]["Row"];
 type Schedule = Database["public"]["Tables"]["service_schedules"]["Row"];
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 
+function formatScheduleTime(value: string | null | undefined) {
+  if (!value) return "Time not set";
+  const [hours = "0", minutes = "0"] = value.split(":");
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+  return new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
 const metricStyles = {
   blue: {
     icon: "bg-primary-100 text-primary-700",
@@ -155,7 +163,7 @@ export function Dashboard() {
       const priority = { overdue: 0, today: 1, upcoming: 2, later: 3 };
       const priorityDiff = priority[getScheduleWindow(a)] - priority[getScheduleWindow(b)];
       if (priorityDiff !== 0) return priorityDiff;
-      return new Date(a.next_service_date).getTime() - new Date(b.next_service_date).getTime();
+      return `${a.next_service_date}T${a.scheduled_time ?? "00:00"}`.localeCompare(`${b.next_service_date}T${b.scheduled_time ?? "00:00"}`);
     });
   const metricCards = [
     { title: "New Inquiries", value: inquiries.filter((inq) => inq.status === "New").length, icon: Inbox, tone: "blue" as const, detail: "Open intake", positive: true },
@@ -326,6 +334,7 @@ export function Dashboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs font-extrabold text-primary-700">{formatDate(schedule.next_service_date)}</p>
+                          <p className="mt-0.5 text-xs font-semibold text-muted">{formatScheduleTime(schedule.scheduled_time)}</p>
                           <StatusBadge value={scheduleWindowLabel(getScheduleWindow(schedule))} className="mt-2" />
                         </div>
                       </div>

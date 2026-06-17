@@ -45,6 +45,7 @@ export const serviceScheduleSchema = z.object({
   recurrence_type: z.enum(recurrenceTypes),
   start_date: z.string().min(1, "Start date is required"),
   next_service_date: z.string().min(1, "Next service date is required"),
+  scheduled_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Enter a valid service time").optional().or(z.literal("")),
   status: z.enum(serviceScheduleStatuses).default("active"),
   assigned_technician: z.string().trim().max(120, "Technician name is too long").optional().or(z.literal("")),
   notes: z.string().trim().max(2000, "Notes are too long").optional().or(z.literal(""))

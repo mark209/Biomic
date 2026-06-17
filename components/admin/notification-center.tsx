@@ -28,6 +28,14 @@ function notificationHref(notification: Notification) {
   return "/admin";
 }
 
+function formatScheduleTime(value: string | null | undefined) {
+  if (!value) return "time not set";
+  const [hours = "0", minutes = "0"] = value.split(":");
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+  return new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -75,7 +83,7 @@ export function NotificationCenter() {
           candidates.push({
             type: "monthly_service_due_soon",
             title: "Monthly Service Due Soon",
-            message: `${schedule.service_type} is due on ${formatDate(schedule.next_service_date)}.`,
+            message: `${schedule.service_type} is due on ${formatDate(schedule.next_service_date)} at ${formatScheduleTime(schedule.scheduled_time)}.`,
             related_customer_id: schedule.customer_id,
             related_inquiry_id: schedule.inquiry_id,
             related_quotation_id: schedule.quotation_id,
@@ -86,7 +94,7 @@ export function NotificationCenter() {
           candidates.push({
             type: "overdue_service",
             title: "Overdue Service",
-            message: `${schedule.service_type} was due on ${formatDate(schedule.next_service_date)}.`,
+            message: `${schedule.service_type} was due on ${formatDate(schedule.next_service_date)} at ${formatScheduleTime(schedule.scheduled_time)}.`,
             related_customer_id: schedule.customer_id,
             related_inquiry_id: schedule.inquiry_id,
             related_quotation_id: schedule.quotation_id,

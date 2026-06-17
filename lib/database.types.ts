@@ -189,6 +189,7 @@ export type Database = {
           recurrence_type: "none" | "monthly" | "quarterly" | "semi_annual" | "annual";
           start_date: string;
           next_service_date: string;
+          scheduled_time: string | null;
           last_service_date: string | null;
           status: "active" | "paused" | "completed" | "cancelled";
           assigned_technician: string | null;
@@ -201,6 +202,7 @@ export type Database = {
           service_type: string;
           start_date: string;
           next_service_date: string;
+          scheduled_time?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["service_schedules"]["Row"]>;
       };

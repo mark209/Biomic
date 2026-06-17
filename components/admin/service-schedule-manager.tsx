@@ -56,6 +56,7 @@ const emptyScheduleValues = {
   recurrence_type: "monthly",
   start_date: formatDateInput(new Date()),
   next_service_date: formatDateInput(new Date()),
+  scheduled_time: "09:00",
   status: "active",
   assigned_technician: "",
   notes: ""
@@ -69,6 +70,31 @@ function normalize(value: string | null | undefined) {
 
 function dateValue(value: string | null | undefined) {
   return value ? new Date(`${value}T00:00:00`).getTime() : 0;
+}
+
+function timeValue(value: string | null | undefined) {
+  if (!value) return 0;
+  const [hours = "0", minutes = "0"] = value.split(":");
+  return Number(hours) * 60 + Number(minutes);
+}
+
+function scheduleDateTimeValue(schedule: Schedule) {
+  return dateValue(schedule.next_service_date) + timeValue(schedule.scheduled_time);
+}
+
+function formatScheduleTime(value: string | null | undefined) {
+  if (!value) return "Time not set";
+  const [hours = "0", minutes = "0"] = value.split(":");
+  const date = new Date();
+  date.setHours(Number(hours), Number(minutes), 0, 0);
+  return new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function formatScheduleDateTime(schedule: Pick<Schedule, "next_service_date" | "scheduled_time">) {
+  return `${formatDate(schedule.next_service_date)} - ${formatScheduleTime(schedule.scheduled_time)}`;
 }
 
 function scheduleStatusLabel(schedule: Schedule) {
@@ -92,6 +118,7 @@ export function ServiceScheduleManager() {
   const [open, setOpen] = useState(false);
   const [rescheduling, setRescheduling] = useState<Schedule | null>(null);
   const [nextDate, setNextDate] = useState(formatDateInput(new Date()));
+  const [nextTime, setNextTime] = useState("09:00");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
@@ -213,7 +240,7 @@ export function ServiceScheduleManager() {
           (end === null || nextDate <= end)
         );
       })
-      .sort((a, b) => dateValue(a.next_service_date) - dateValue(b.next_service_date));
+      .sort((a, b) => scheduleDateTimeValue(a) - scheduleDateTimeValue(b));
   }, [activeSummary, customerById, dateFrom, dateTo, schedules, searchTerm, sections, serviceFilter, statusFilter, technicianFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filteredSchedules.length / pageSize));
@@ -250,6 +277,7 @@ export function ServiceScheduleManager() {
       recurrence_type: values.recurrence_type,
       start_date: scheduleDates.start_date,
       next_service_date: scheduleDates.next_service_date,
+      scheduled_time: values.scheduled_time || null,
       status: values.status,
       assigned_technician: values.assigned_technician || null,
       notes: values.notes || null
@@ -302,11 +330,12 @@ export function ServiceScheduleManager() {
     setOpenMenuId(null);
     setRescheduling(schedule);
     setNextDate(schedule.next_service_date);
+    setNextTime(schedule.scheduled_time ?? "09:00");
   }
 
   async function saveReschedule() {
     if (!rescheduling) return;
-    await updateSchedule(rescheduling, { next_service_date: nextDate, status: "active" }, "Service rescheduled.", `reschedule-${rescheduling.id}`);
+    await updateSchedule(rescheduling, { next_service_date: nextDate, scheduled_time: nextTime || null, status: "active" }, "Service rescheduled.", `reschedule-${rescheduling.id}`);
     setRescheduling(null);
   }
 
@@ -452,7 +481,7 @@ export function ServiceScheduleManager() {
                     <th className="px-4 py-3 font-extrabold">Customer</th>
                     <th className="px-4 py-3 font-extrabold">Service</th>
                     <th className="px-4 py-3 font-extrabold">Recurrence</th>
-                    <th className="px-4 py-3 font-extrabold">Next Service Date</th>
+                    <th className="px-4 py-3 font-extrabold">Schedule</th>
                     <th className="px-4 py-3 font-extrabold">Technician</th>
                     <th className="px-4 py-3 font-extrabold">Status</th>
                     <th className="px-4 py-3 text-right font-extrabold">Actions</th>
@@ -477,7 +506,10 @@ export function ServiceScheduleManager() {
                         </td>
                         <td className="px-4 py-3 align-middle text-ink">{schedule.service_type}</td>
                         <td className="px-4 py-3 align-middle text-muted">{recurrenceLabels[schedule.recurrence_type]}</td>
-                        <td className="px-4 py-3 align-middle font-semibold text-ink">{formatDate(schedule.next_service_date)}</td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="font-semibold text-ink">{formatDate(schedule.next_service_date)}</div>
+                          <div className="mt-0.5 text-xs font-bold text-primary-700">{formatScheduleTime(schedule.scheduled_time)}</div>
+                        </td>
                         <td className="px-4 py-3 align-middle text-muted">{schedule.assigned_technician || "Not assigned"}</td>
                         <td className="px-4 py-3 align-middle"><StatusBadge value={scheduleStatusLabel(schedule)} /></td>
                         <td className="px-4 py-3 align-middle">
@@ -532,7 +564,7 @@ export function ServiceScheduleManager() {
                       </div>
                       <div className="mt-3 grid gap-1 text-sm text-muted">
                         <span><strong className="text-ink">Service:</strong> {schedule.service_type}</span>
-                        <span><strong className="text-ink">Next:</strong> {formatDate(schedule.next_service_date)}</span>
+                        <span><strong className="text-ink">Next:</strong> {formatScheduleDateTime(schedule)}</span>
                         <span><strong className="text-ink">Technician:</strong> {schedule.assigned_technician || "Not assigned"}</span>
                       </div>
                     </button>
@@ -637,16 +669,19 @@ export function ServiceScheduleManager() {
             <Select label="Service type" {...register("service_type")}>{serviceTypes.map((type) => <option key={type}>{type}</option>)}</Select>
             <Select label="Recurrence" {...register("recurrence_type")}>{recurrenceTypes.map((type) => <option key={type} value={type}>{recurrenceLabels[type]}</option>)}</Select>
           </div>
-          <Input
-            label="Service date"
-            type="date"
-            {...register("start_date")}
-            error={errors.start_date?.message}
-            onChange={(event) => {
-              setValue("start_date", event.target.value);
-              setValue("next_service_date", event.target.value);
-            }}
-          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              label="Service date"
+              type="date"
+              {...register("start_date")}
+              error={errors.start_date?.message}
+              onChange={(event) => {
+                setValue("start_date", event.target.value);
+                setValue("next_service_date", event.target.value);
+              }}
+            />
+            <Input label="Service time" type="time" {...register("scheduled_time")} error={errors.scheduled_time?.message} />
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Select label="Status" {...register("status")} error={errors.status?.message}>
               <option value="active">Active</option>
@@ -666,10 +701,13 @@ export function ServiceScheduleManager() {
 
       <Modal title="Reschedule service" open={Boolean(rescheduling)} onClose={() => setRescheduling(null)}>
         <div className="grid gap-4">
-          <Input label="Next service date" type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input label="Next service date" type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} />
+            <Input label="Service time" type="time" value={nextTime} onChange={(event) => setNextTime(event.target.value)} />
+          </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={() => setRescheduling(null)}>Cancel</Button>
-            <Button onClick={saveReschedule}>Save date</Button>
+            <Button onClick={saveReschedule}>Save schedule</Button>
           </div>
         </div>
       </Modal>
@@ -753,7 +791,7 @@ function ScheduleDrawer({
             <StatusBadge value={scheduleStatusLabel(schedule)} />
             <div className="text-right text-sm">
               <div className="font-extrabold text-primary-800">{formatDate(schedule.next_service_date)}</div>
-              <div className="text-xs font-semibold text-muted">Next Service Date</div>
+              <div className="text-xs font-semibold text-muted">{formatScheduleTime(schedule.scheduled_time)}</div>
             </div>
           </div>
         </div>
@@ -780,7 +818,7 @@ function ScheduleDrawer({
             <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Service type</dt><dd className="text-ink">{schedule.service_type}</dd></div>
             <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Recurrence</dt><dd className="text-ink">{recurrenceLabels[schedule.recurrence_type]}</dd></div>
             <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Last service</dt><dd className="text-ink">{schedule.last_service_date ? formatDate(schedule.last_service_date) : "No completed service yet"}</dd></div>
-            <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Next service</dt><dd className="text-ink">{formatDate(schedule.next_service_date)}</dd></div>
+            <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Next service</dt><dd className="text-ink">{formatScheduleDateTime(schedule)}</dd></div>
             <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Assigned technician</dt><dd className="text-ink">{schedule.assigned_technician || "Not assigned"}</dd></div>
             <div className="grid grid-cols-[8rem_minmax(0,1fr)] gap-3"><dt className="font-semibold text-muted">Status</dt><dd><StatusBadge value={scheduleStatusLabel(schedule)} /></dd></div>
           </dl>

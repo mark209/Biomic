@@ -189,6 +189,7 @@ create table if not exists public.service_schedules (
   recurrence_type text not null default 'none' check (recurrence_type in ('none', 'monthly', 'quarterly', 'semi_annual', 'annual')),
   start_date date not null,
   next_service_date date not null,
+  scheduled_time time,
   last_service_date date,
   status text not null default 'active' check (status in ('active', 'paused', 'completed', 'cancelled')),
   assigned_technician text,
