@@ -1,22 +1,121 @@
 "use client";
 
-import { Bell, CalendarDays, CheckCircle2, ClipboardList, Eye, FileText, Inbox, ReceiptText, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
+  Inbox,
+  Minus,
+  ReceiptText,
+  TrendingUp,
+  UserRound
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminPageHeader } from "./admin-page-header";
 import { Button } from "@/components/ui/button";
 import { CustomerBadges } from "@/components/ui/customer-badges";
-import { DashboardCard } from "@/components/ui/dashboard-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
-import { formatDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { badgesForInquiry, formatDateInput, getScheduleWindow, nextServiceDateFrom, scheduleWindowLabel, sortInquiriesForOps } from "@/lib/service-workflow";
 
 type Inquiry = Database["public"]["Tables"]["inquiries"]["Row"];
 type Quotation = Database["public"]["Tables"]["quotations"]["Row"];
 type Schedule = Database["public"]["Tables"]["service_schedules"]["Row"];
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
+
+const metricStyles = {
+  blue: {
+    icon: "bg-primary-100 text-primary-700",
+    value: "text-primary-700",
+    trend: "text-emerald-700"
+  },
+  amber: {
+    icon: "bg-amber-100 text-amber-700",
+    value: "text-amber-700",
+    trend: "text-muted"
+  },
+  green: {
+    icon: "bg-emerald-100 text-emerald-700",
+    value: "text-emerald-700",
+    trend: "text-muted"
+  },
+  gray: {
+    icon: "bg-slate-100 text-slate-700",
+    value: "text-slate-900",
+    trend: "text-emerald-700"
+  }
+};
+
+function MetricCard({
+  title,
+  value,
+  icon: Icon,
+  tone,
+  detail,
+  positive = false
+}: {
+  title: string;
+  value: number;
+  icon: LucideIcon;
+  tone: keyof typeof metricStyles;
+  detail: string;
+  positive?: boolean;
+}) {
+  const styles = metricStyles[tone];
+  const DetailIcon = positive ? TrendingUp : Minus;
+
+  return (
+    <article className="rounded-lg border border-line bg-white p-5 shadow-panel transition hover:-translate-y-0.5 hover:shadow-soft">
+      <div className="flex items-start gap-4">
+        <span className={cn("grid h-14 w-14 shrink-0 place-items-center rounded-lg", styles.icon)}>
+          <Icon className="h-6 w-6" />
+        </span>
+        <div className="min-w-0">
+          <p className="whitespace-nowrap text-sm font-semibold text-ink">{title}</p>
+          <p className={cn("mt-3 text-4xl font-extrabold leading-none", styles.value)}>{value}</p>
+          <p className={cn("mt-4 inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold", positive ? styles.trend : "text-muted")}>
+            <DetailIcon className="h-3.5 w-3.5" />
+            {detail}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function WidgetHeader({ title, href, linkLabel = "View all" }: { title: string; href: string; linkLabel?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+      <h2 className="text-base font-extrabold text-ink">{title}</h2>
+      <Link href={href} className="inline-flex min-h-10 items-center gap-1 text-sm font-bold text-primary-700 hover:text-primary-800">
+        {linkLabel}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
+function CompactLink({ href, children, primary = false }: { href: string; children: React.ReactNode; primary?: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex min-h-8 items-center justify-center rounded-md px-2.5 text-xs font-bold transition",
+        primary ? "bg-primary-700 text-white hover:bg-primary-800" : "border border-line bg-white text-ink hover:bg-primary-50"
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function Dashboard() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -34,9 +133,9 @@ export function Dashboard() {
         supabase.from("service_schedules").select("*").order("next_service_date", { ascending: true }).limit(50),
         supabase.from("customers").select("*").order("name").limit(100)
       ]);
-      if (inq.error) setError(inq.error.message);
-      if (quote.error) setError(quote.error.message);
-      if (schedule.error) setError(schedule.error.message);
+      if (inq.error) setError(getSafeErrorMessage("load inquiries"));
+      if (quote.error) setError(getSafeErrorMessage("load quotations"));
+      if (schedule.error) setError(getSafeErrorMessage("load service schedules"));
       setInquiries(inq.data ?? []);
       setQuotations(quote.data ?? []);
       setSchedules((schedule.data ?? []) as Schedule[]);
@@ -49,6 +148,7 @@ export function Dashboard() {
   const approved = quotations.filter((quote) => quote.status === "Approved").length;
   const completed = quotations.filter((quote) => quote.status === "Completed").length;
   const priorityInquiries = sortInquiriesForOps(inquiries);
+  const recentInquiries = priorityInquiries.slice(0, 5);
   const dueSchedules = schedules
     .filter((schedule) => ["today", "upcoming", "overdue"].includes(getScheduleWindow(schedule)))
     .sort((a, b) => {
@@ -57,11 +157,24 @@ export function Dashboard() {
       if (priorityDiff !== 0) return priorityDiff;
       return new Date(a.next_service_date).getTime() - new Date(b.next_service_date).getTime();
     });
+  const metricCards = [
+    { title: "New Inquiries", value: inquiries.filter((inq) => inq.status === "New").length, icon: Inbox, tone: "blue" as const, detail: "Open intake", positive: true },
+    { title: "Pending Quotes", value: pending, icon: ClipboardList, tone: "amber" as const, detail: "Awaiting approval" },
+    { title: "Approved Quotes", value: approved, icon: CheckCircle2, tone: "green" as const, detail: "Ready to schedule" },
+    { title: "Completed Jobs", value: completed, icon: ReceiptText, tone: "gray" as const, detail: "Closed jobs", positive: true }
+  ];
+  const activityItems = quotations.slice(0, 5).map((quote) => ({
+    id: quote.id,
+    title: quote.quotation_number,
+    description: `${quote.customer_name} - ${quote.status}`,
+    date: formatDate(quote.created_at),
+    tone: quote.status === "Approved" || quote.status === "Completed" ? "bg-emerald-600" : quote.status === "Sent" ? "bg-primary-700" : "bg-amber-500"
+  }));
 
   async function updateSchedule(schedule: Schedule, patch: Partial<Schedule>) {
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("service_schedules").update(patch).eq("id", schedule.id);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(getSafeErrorMessage("update the service schedule"));
     const { data } = await supabase.from("service_schedules").select("*").order("next_service_date", { ascending: true }).limit(50);
     setSchedules((data ?? []) as Schedule[]);
   }
@@ -83,88 +196,169 @@ export function Dashboard() {
         title="Overview"
         description="Real-time operational metrics for inquiries and quotations."
         action={
-          <div className="flex flex-wrap gap-2">
-            <Link href="/admin/customers"><Button variant="outline"><UserRound className="h-4 w-4" /> New Customer</Button></Link>
-            <Link href="/admin/quotation-builder"><Button variant="outline"><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
-            <Link href="/admin/inquiries"><Button><Bell className="h-4 w-4" /> New Inquiry</Button></Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/admin/customers"><Button variant="outline" className="shadow-sm"><UserRound className="h-4 w-4" /> New Customer</Button></Link>
+            <Link href="/admin/quotation-builder"><Button variant="outline" className="shadow-sm"><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
+            <Link href="/admin/inquiries"><Button className="shadow-sm"><Bell className="h-4 w-4" /> New Inquiry</Button></Link>
           </div>
         }
       />
       {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-semibold text-danger">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <DashboardCard title="New Inquiries" value={inquiries.filter((inq) => inq.status === "New").length} icon={Inbox} tone="blue" />
-        <DashboardCard title="Pending Quotes" value={pending} icon={ClipboardList} tone="amber" />
-        <DashboardCard title="Approved Quotes" value={approved} icon={CheckCircle2} tone="green" />
-        <DashboardCard title="Completed Jobs" value={completed} icon={ReceiptText} tone="gray" />
+        {metricCards.map((metric) => (
+          <MetricCard key={metric.title} {...metric} />
+        ))}
       </div>
-      <div className="mt-6 grid gap-5 xl:grid-cols-[1.2fr_0.9fr]">
+      <div className="mt-6 grid gap-5">
         <div className="admin-panel overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line bg-white px-5 py-4">
-            <h2 className="font-bold text-ink">Recent Inquiries</h2>
-            <Link href="/admin/inquiries" className="inline-flex min-h-11 items-center text-sm font-bold text-primary-700">View all</Link>
-          </div>
-          <div className="divide-y divide-line">
-            {priorityInquiries.slice(0, 6).map((inquiry) => (
-              <div key={inquiry.id} className={`grid gap-3 p-4 lg:grid-cols-[8rem_minmax(0,1fr)_8rem_7rem] lg:items-start ${inquiry.status === "New" ? "bg-primary-50/50" : ""}`}>
-                <span className="break-words font-bold text-primary-800">{inquiry.reference_number}</span>
-                <span className="grid min-w-0 gap-2 text-sm text-ink">
-                  <span className="break-words font-semibold">
-                    {inquiry.customer_name}
-                    <span className="mt-1 block break-words font-normal text-muted">{inquiry.service_type}</span>
-                  </span>
-                  <CustomerBadges badges={badgesForInquiry(inquiry, inquiries, quotations, schedules)} />
-                </span>
-                <StatusBadge value={inquiry.status} />
-                <span className="text-sm text-muted">{formatDate(inquiry.created_at)}</span>
-                <span className="flex flex-wrap justify-start gap-2 lg:col-span-4">
-                  <Link href={`/admin/inquiries?focus=${inquiry.id}`}><Button size="sm" variant="outline"><Eye className="h-4 w-4" /> View Inquiry</Button></Link>
-                  <Link href={inquiry.customer_id ? `/admin/customers/${inquiry.customer_id}` : `/admin/customers?phone=${encodeURIComponent(inquiry.contact_number)}`}><Button size="sm" variant="outline">View Customer</Button></Link>
-                  <Link href={`/admin/quotation-builder?inquiry=${inquiry.id}`}><Button size="sm">Quote</Button></Link>
-                </span>
+          <WidgetHeader title="Recent Inquiries" href="/admin/inquiries" />
+          {recentInquiries.length ? (
+            <>
+              <div className="hidden lg:block">
+                <table className="w-full table-fixed border-collapse text-left">
+                  <colgroup>
+                    <col className="w-[14%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[19%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[15%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-line bg-slate-50/80 text-xs font-extrabold text-muted">
+                      <th className="px-4 py-3">Inquiry ID</th>
+                      <th className="px-3 py-3">Customer</th>
+                      <th className="px-3 py-3">Service</th>
+                      <th className="px-3 py-3">Tags</th>
+                      <th className="px-3 py-3">Status</th>
+                      <th className="px-3 py-3">Date</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line text-sm">
+                    {recentInquiries.map((inquiry) => (
+                      <tr key={inquiry.id} className={cn("bg-white transition hover:bg-primary-50/50", inquiry.status === "New" && "bg-primary-50/30")}>
+                        <td className="px-4 py-4 align-middle">
+                          <Link href={`/admin/inquiries?focus=${inquiry.id}`} className="font-extrabold text-primary-700 hover:text-primary-800">
+                            {inquiry.reference_number}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-4 align-middle">
+                          <Link
+                            href={inquiry.customer_id ? `/admin/customers/${inquiry.customer_id}` : `/admin/customers?phone=${encodeURIComponent(inquiry.contact_number)}`}
+                            className="break-words font-semibold text-ink hover:text-primary-700"
+                          >
+                            {inquiry.customer_name}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-4 align-middle text-muted">{inquiry.service_type}</td>
+                        <td className="px-3 py-4 align-middle">
+                          <CustomerBadges badges={badgesForInquiry(inquiry, inquiries, quotations, schedules)} />
+                        </td>
+                        <td className="px-3 py-4 align-middle">
+                          <StatusBadge value={inquiry.status} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 align-middle text-muted">{formatDate(inquiry.created_at)}</td>
+                        <td className="px-4 py-4 align-middle">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <CompactLink href={`/admin/inquiries?focus=${inquiry.id}`}>
+                              View
+                            </CompactLink>
+                            <CompactLink href={`/admin/quotation-builder?inquiry=${inquiry.id}`} primary>
+                              Quote
+                            </CompactLink>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-            {!inquiries.length ? <p className="p-5 text-sm text-muted">No inquiries yet.</p> : null}
+              <div className="divide-y divide-line lg:hidden">
+                {recentInquiries.map((inquiry) => (
+                  <article key={inquiry.id} className="grid gap-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link href={`/admin/inquiries?focus=${inquiry.id}`} className="font-extrabold text-primary-700">
+                          {inquiry.reference_number}
+                        </Link>
+                        <p className="mt-1 font-semibold text-ink">{inquiry.customer_name}</p>
+                        <p className="text-sm text-muted">{inquiry.service_type}</p>
+                      </div>
+                      <StatusBadge value={inquiry.status} />
+                    </div>
+                    <CustomerBadges badges={badgesForInquiry(inquiry, inquiries, quotations, schedules)} />
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-sm text-muted">{formatDate(inquiry.created_at)}</span>
+                      <span className="flex flex-wrap gap-2">
+                        <CompactLink href={`/admin/inquiries?focus=${inquiry.id}`}>View</CompactLink>
+                        <CompactLink href={inquiry.customer_id ? `/admin/customers/${inquiry.customer_id}` : `/admin/customers?phone=${encodeURIComponent(inquiry.contact_number)}`}>Customer</CompactLink>
+                        <CompactLink href={`/admin/quotation-builder?inquiry=${inquiry.id}`} primary>Quote</CompactLink>
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="p-5 text-sm text-muted">No inquiries yet.</p>
+          )}
+          <div className="flex items-center justify-between border-t border-line px-5 py-4 text-xs font-semibold text-muted">
+            <span>Showing {recentInquiries.length ? `1 to ${recentInquiries.length}` : "0"} of {inquiries.length} results</span>
           </div>
         </div>
-        <div className="grid gap-5">
-          <div className="admin-panel p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-bold text-ink">Upcoming Services</h2>
-              <Link href="/admin/service-schedule" className="inline-flex min-h-11 items-center text-sm font-bold text-primary-700">View all</Link>
-            </div>
-            <div className="mt-4 grid gap-3">
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="admin-panel overflow-hidden">
+            <WidgetHeader title="Upcoming Services" href="/admin/service-schedule" />
+            <div className="grid gap-1 p-4">
               {dueSchedules.slice(0, 5).map((schedule) => (
-                <div key={schedule.id} className="rounded-lg border border-line bg-slate-50 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-primary-700" />
-                      <p className="text-sm font-bold text-ink">{schedule.service_type}</p>
+                <div key={schedule.id} className="rounded-lg px-3 py-3 transition hover:bg-slate-50">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary-100 text-primary-700">
+                      <CalendarDays className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-ink">{customers.find((customer) => customer.id === schedule.customer_id)?.name ?? "Customer"}</p>
+                          <p className="mt-0.5 text-sm text-muted">{schedule.service_type}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-extrabold text-primary-700">{formatDate(schedule.next_service_date)}</p>
+                          <StatusBadge value={scheduleWindowLabel(getScheduleWindow(schedule))} className="mt-2" />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <CompactLink href={`/admin/customers/${schedule.customer_id}`}>Customer</CompactLink>
+                        <CompactLink href={`/admin/quotation-builder?customer=${schedule.customer_id}`}>Quote</CompactLink>
+                        <Button size="sm" variant="success" className="min-h-9 px-3 text-xs" onClick={() => markCompleted(schedule)}>
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Done
+                        </Button>
+                      </div>
                     </div>
-                    <StatusBadge value={scheduleWindowLabel(getScheduleWindow(schedule))} />
-                  </div>
-                  <p className="mt-1 text-sm text-muted">{formatDate(schedule.next_service_date)}</p>
-                  <p className="mt-1 text-sm font-semibold text-ink">{customers.find((customer) => customer.id === schedule.customer_id)?.name ?? "Customer"}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Link href={`/admin/customers/${schedule.customer_id}`}><Button size="sm" variant="outline">View Customer</Button></Link>
-                    <Link href={`/admin/quotation-builder?customer=${schedule.customer_id}`}><Button size="sm" variant="outline">Create Quotation</Button></Link>
-                    <Button size="sm" variant="success" onClick={() => markCompleted(schedule)}><CheckCircle2 className="h-4 w-4" /> Mark Completed</Button>
                   </div>
                 </div>
               ))}
-              {!dueSchedules.length ? <p className="rounded-lg border border-dashed border-line p-5 text-center text-sm text-muted">No due or overdue services.</p> : null}
+              {!dueSchedules.length ? <p className="px-3 py-4 text-sm text-muted">No due or overdue services.</p> : null}
             </div>
           </div>
-          <div className="admin-panel p-5">
-            <h2 className="font-bold text-ink">Activity Feed</h2>
-            <div className="mt-5 grid gap-4 border-l border-line pl-4">
-              {quotations.slice(0, 4).map((quote) => (
-                <div key={quote.id} className="relative">
-                  <span className="absolute -left-[23px] top-1 h-3 w-3 rounded-full bg-primary-700 ring-4 ring-white" />
-                  <p className="text-sm font-bold text-ink">{quote.quotation_number}</p>
-                  <p className="text-sm text-muted">{quote.customer_name} - {quote.status}</p>
+          <div className="admin-panel overflow-hidden">
+            <WidgetHeader title="Activity Feed" href="/admin/quotations" linkLabel="View full activity" />
+            <div className="grid gap-1 p-4">
+              {activityItems.map((item) => (
+                <div key={item.id} className="relative grid grid-cols-[1.5rem_minmax(0,1fr)_auto] gap-3 rounded-lg px-2 py-3">
+                  <span className="absolute bottom-0 left-[1.18rem] top-8 w-px bg-line" aria-hidden="true" />
+                  <span className={cn("relative z-10 mt-1 h-3 w-3 rounded-full ring-4 ring-white", item.tone)} />
+                  <div className="min-w-0">
+                    <p className="font-bold text-ink">{item.title}</p>
+                    <p className="mt-0.5 text-sm text-muted">{item.description}</p>
+                  </div>
+                  <span className="whitespace-nowrap text-xs font-semibold text-muted">{item.date}</span>
                 </div>
               ))}
-              {!quotations.length ? <p className="text-sm text-muted">No quotation activity yet.</p> : null}
+              {!activityItems.length ? <p className="px-2 py-4 text-sm text-muted">No quotation activity yet.</p> : null}
             </div>
           </div>
         </div>

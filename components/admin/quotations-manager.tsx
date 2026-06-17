@@ -11,6 +11,7 @@ import { MobileCard } from "@/components/ui/mobile-card";
 import { StatusSelect } from "@/components/ui/status-select";
 import type { Database } from "@/lib/database.types";
 import { downloadQuotationPdf } from "@/lib/pdf";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, money } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ export function QuotationsManager() {
       supabase.from("quotations").select("*").order("created_at", { ascending: false }),
       supabase.from("quotation_items").select("*").order("sort_order")
     ]);
-    if (quoteResult.error) setError(quoteResult.error.message);
+    if (quoteResult.error) setError(getSafeErrorMessage("load quotations"));
     setQuotes(quoteResult.data ?? []);
     setItems((itemResult.data ?? []) as QuotationItem[]);
   }
@@ -65,14 +66,14 @@ export function QuotationsManager() {
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("quotations").update({ status: nextStatus }).eq("id", quote.id);
     if (updateError) {
-      setError(updateError.message);
+      setError(getSafeErrorMessage("update the quotation"));
       return;
     }
 
     const nextInquiryStatus = inquiryStatusForQuotationStatus(nextStatus);
     if (quote.inquiry_id && nextInquiryStatus) {
       const { error: inquiryError } = await (supabase as any).from("inquiries").update({ status: nextInquiryStatus }).eq("id", quote.inquiry_id);
-      if (inquiryError) setError(inquiryError.message);
+      if (inquiryError) setError(getSafeErrorMessage("update the linked inquiry"));
     }
 
     await load();

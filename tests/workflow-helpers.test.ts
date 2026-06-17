@@ -1,11 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  badgesForCustomer,
+  badgesForInquiry,
   catalogUsageForItem,
   findDuplicateCustomers,
   sortInquiriesForOps,
   sortNotificationsForOps
-} from "../lib/service-workflow";
+} from "../lib/service-workflow.ts";
 
 const now = "2026-05-30T05:00:00.000Z";
 
@@ -48,6 +50,72 @@ test("sortInquiriesForOps puts new and under-review work before completed work",
   ]);
 
   assert.deepEqual(sorted.map((inquiry) => inquiry.id), ["new", "under-review", "newer-completed", "completed"]);
+});
+
+test("badgesForCustomer treats a first linked record as a new customer", () => {
+  const customer = {
+    id: "customer-1",
+    name: "New Customer",
+    contact_number: "09171234567",
+    email: null,
+    address: "Makati",
+    notes: null,
+    created_at: now,
+    updated_at: now
+  };
+  const inquiry = {
+    id: "inquiry-1",
+    reference_number: "DAI-2026-0530-1000",
+    customer_id: customer.id,
+    customer_name: customer.name,
+    contact_number: customer.contact_number,
+    email: null,
+    address: customer.address,
+    service_type: "Aircon Cleaning",
+    aircon_type: "Wall-mounted Split",
+    brand_model: null,
+    problem_description: "First service request",
+    preferred_schedule: null,
+    photo_path: null,
+    status: "New",
+    created_by: null,
+    created_at: now,
+    updated_at: now
+  };
+
+  assert.deepEqual(badgesForCustomer(customer, [inquiry], [], []), ["NEW CUSTOMER"]);
+});
+
+test("badgesForInquiry does not mark same-name different-contact inquiries as returning", () => {
+  const previousInquiry = {
+    id: "inquiry-1",
+    reference_number: "DAI-2026-0530-1000",
+    customer_id: null,
+    customer_name: "Juan Dela Cruz",
+    contact_number: "09170000000",
+    email: null,
+    address: "Makati",
+    service_type: "Aircon Cleaning",
+    aircon_type: "Wall-mounted Split",
+    brand_model: null,
+    problem_description: "Earlier unrelated request",
+    preferred_schedule: null,
+    photo_path: null,
+    status: "Completed",
+    created_by: null,
+    created_at: now,
+    updated_at: now
+  };
+  const newInquiry = {
+    ...previousInquiry,
+    id: "inquiry-2",
+    reference_number: "DAI-2026-0530-1001",
+    contact_number: "09990000000",
+    address: "Pasig",
+    problem_description: "New unrelated customer request"
+  };
+
+  assert.deepEqual(badgesForInquiry(newInquiry, [previousInquiry, newInquiry], [], []), ["NEW CUSTOMER"]);
 });
 
 test("catalogUsageForItem detects quotation and template references", () => {

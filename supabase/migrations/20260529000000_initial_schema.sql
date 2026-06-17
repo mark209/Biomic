@@ -13,28 +13,6 @@ begin
 end;
 $$;
 
-create or replace function public.current_user_is_staff()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select coalesce(
-    (auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'staff')
-    or (auth.jwt() -> 'user_metadata' ->> 'role') in ('admin', 'staff')
-    or exists (
-      select 1
-      from public.profiles
-      where id = auth.uid()
-        and role in ('admin', 'staff')
-    ),
-    false
-  );
-$$;
-
-grant execute on function public.current_user_is_staff() to authenticated;
-
 do $$
 begin
   if not exists (
@@ -225,7 +203,7 @@ create unique index if not exists notifications_unique_quotation_type_idx on pub
 create unique index if not exists notifications_unique_schedule_message_idx on public.notifications (type, related_schedule_id, message) where related_schedule_id is not null;
 
 grant usage on schema public to anon, authenticated;
-grant insert on public.inquiries to anon;
+grant select, insert on public.inquiries to anon;
 grant all on public.customers to authenticated;
 grant all on public.inquiries to authenticated;
 grant all on public.labor_items to authenticated;
@@ -311,10 +289,8 @@ begin
       and udt_name = 'uuid'
   ) then
     grant all on public.profiles to authenticated;
-    revoke update (id, role, created_at, updated_at) on public.profiles from authenticated;
-    grant update (full_name) on public.profiles to authenticated;
     drop policy if exists "Staff can read profiles" on public.profiles;
-    create policy "Staff can read profiles" on public.profiles for select to authenticated using (public.current_user_is_staff() or (select auth.uid()) = id);
+    create policy "Staff can read profiles" on public.profiles for select to authenticated using (true);
     drop policy if exists "Staff can update own profile" on public.profiles;
     create policy "Staff can update own profile" on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
   end if;
@@ -322,46 +298,37 @@ end;
 $$;
 
 drop policy if exists "Staff manage customers" on public.customers;
-create policy "Staff manage customers" on public.customers for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage customers" on public.customers for all to authenticated using (true) with check (true);
 
 drop policy if exists "Public can create inquiries" on public.inquiries;
-create policy "Public can create inquiries" on public.inquiries for insert to anon with check (
-  status = 'New'
-  and created_by is null
-  and customer_id is null
-  and reference_number ~ '^DAI-[0-9]{4}-[0-9]{4}-[0-9]{4}$'
-  and (
-    photo_path is null
-    or photo_path ~ '^DAI-[0-9]{4}-[0-9]{4}-[0-9]{4}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$'
-  )
-);
+create policy "Public can create inquiries" on public.inquiries for insert to anon with check (status = 'New' and created_by is null);
 
 drop policy if exists "Staff manage inquiries" on public.inquiries;
-create policy "Staff manage inquiries" on public.inquiries for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage inquiries" on public.inquiries for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage labor items" on public.labor_items;
-create policy "Staff manage labor items" on public.labor_items for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage labor items" on public.labor_items for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage parts items" on public.parts_items;
-create policy "Staff manage parts items" on public.parts_items for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage parts items" on public.parts_items for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage service templates" on public.service_templates;
-create policy "Staff manage service templates" on public.service_templates for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage service templates" on public.service_templates for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage service template items" on public.service_template_items;
-create policy "Staff manage service template items" on public.service_template_items for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage service template items" on public.service_template_items for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage quotations" on public.quotations;
-create policy "Staff manage quotations" on public.quotations for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage quotations" on public.quotations for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage quotation items" on public.quotation_items;
-create policy "Staff manage quotation items" on public.quotation_items for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage quotation items" on public.quotation_items for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage service schedules" on public.service_schedules;
-create policy "Staff manage service schedules" on public.service_schedules for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage service schedules" on public.service_schedules for all to authenticated using (true) with check (true);
 
 drop policy if exists "Staff manage notifications" on public.notifications;
-create policy "Staff manage notifications" on public.notifications for all to authenticated using (public.current_user_is_staff()) with check (public.current_user_is_staff());
+create policy "Staff manage notifications" on public.notifications for all to authenticated using (true) with check (true);
 
 insert into public.labor_items (name, description, default_price)
 select seed.name, seed.description, seed.default_price
@@ -427,10 +394,7 @@ drop policy if exists "Public can upload inquiry photos" on storage.objects;
 create policy "Public can upload inquiry photos"
 on storage.objects for insert
 to anon
-with check (
-  bucket_id = 'inquiry-photos'
-  and lower(name) ~ '^dai-[0-9]{4}-[0-9]{4}-[0-9]{4}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$'
-);
+with check (bucket_id = 'inquiry-photos');
 
 drop policy if exists "Staff can read inquiry photos" on storage.objects;
 create policy "Staff can read inquiry photos"

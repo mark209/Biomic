@@ -168,8 +168,7 @@ function belongsToCustomer(record: { customer_id?: string | null; contact_number
 function belongsToInquiry(record: { customer_id?: string | null; contact_number?: string | null; customer_name?: string | null }, inquiry: Pick<Inquiry, "id" | "customer_id" | "contact_number" | "customer_name">) {
   return (
     (!!inquiry.customer_id && record.customer_id === inquiry.customer_id) ||
-    (!!record.contact_number && contactKey(record.contact_number) === contactKey(inquiry.contact_number)) ||
-    (!!record.customer_name && record.customer_name.trim().toLowerCase() === inquiry.customer_name.trim().toLowerCase())
+    (!!record.contact_number && contactKey(record.contact_number) === contactKey(inquiry.contact_number))
   );
 }
 
@@ -184,7 +183,7 @@ export function badgesForCustomer(customer: Customer, inquiries: Inquiry[], quot
   const customerInquiries = inquiries.filter((inquiry) => belongsToCustomer(inquiry, customer));
   const customerQuotes = quotations.filter((quote) => belongsToCustomer(quote, customer));
   const customerSchedules = schedules.filter((schedule) => schedule.customer_id === customer.id);
-  return buildCustomerBadges(customerInquiries.length + customerQuotes.length > 0, customerSchedules);
+  return buildCustomerBadges(customerInquiries.length + customerQuotes.length > 1, customerSchedules);
 }
 
 function buildCustomerBadges(hasHistory: boolean, schedules: ServiceSchedule[]): CustomerBadge[] {

@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { getSafeErrorMessage, safeInternalRedirect } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseEnv } from "@/lib/supabase/env";
 
@@ -37,15 +38,19 @@ export function LoginForm() {
       return;
     }
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword(values);
-    if (signInError) {
-      setError(signInError.message);
-      return;
-    }
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword(values);
+      if (signInError) {
+        setError("Invalid email or password.");
+        return;
+      }
 
-    router.replace(params.get("next") || "/admin");
-    router.refresh();
+      router.replace(safeInternalRedirect(params.get("next")));
+      router.refresh();
+    } catch {
+      setError(getSafeErrorMessage("sign in"));
+    }
   }
 
   return (

@@ -25,6 +25,8 @@ const statusMeta = {
   Rejected: { className: "bg-red-100 text-red-950 ring-red-200", icon: XCircle },
   Overdue: { className: "bg-red-100 text-red-950 ring-red-200", icon: AlertTriangle },
   "Due Soon": { className: "bg-amber-100 text-amber-950 ring-amber-200", icon: AlertTriangle },
+  Active: { className: "bg-emerald-100 text-emerald-950 ring-emerald-200", icon: CheckCircle2 },
+  Paused: { className: "bg-amber-100 text-amber-950 ring-amber-200", icon: Clock3 },
   Draft: { className: "bg-slate-100 text-slate-800 ring-slate-200", icon: CircleDashed },
   Sent: { className: "bg-primary-100 text-primary-900 ring-primary-200", icon: Send },
   active: { className: "bg-emerald-100 text-emerald-950 ring-emerald-200", icon: CheckCircle2 },

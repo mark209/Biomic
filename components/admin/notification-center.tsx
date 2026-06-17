@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
 import { badgesForInquiry, getScheduleWindow, sortNotificationsForOps } from "@/lib/service-workflow";
@@ -42,7 +43,7 @@ export function NotificationCenter() {
     ]);
 
     if (notificationResult.error) {
-      setError(notificationResult.error.message);
+      setError(getSafeErrorMessage("load notifications"));
       return;
     }
 
@@ -134,7 +135,7 @@ export function NotificationCenter() {
 
     if (newNotifications.length) {
       const { error: insertError } = await (supabase as any).from("notifications").insert(newNotifications);
-      if (insertError) setError(insertError.message);
+      if (insertError) setError(getSafeErrorMessage("create notifications"));
     }
 
     const { data: refreshed } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(20);
@@ -150,7 +151,7 @@ export function NotificationCenter() {
   async function markAsRead(id: string) {
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("notifications").update({ is_read: true }).eq("id", id);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(getSafeErrorMessage("mark the notification as read"));
     await load();
   }
 
@@ -159,7 +160,7 @@ export function NotificationCenter() {
     if (!unreadIds.length) return;
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("notifications").update({ is_read: true }).in("id", unreadIds);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(getSafeErrorMessage("mark notifications as read"));
     await load();
   }
 

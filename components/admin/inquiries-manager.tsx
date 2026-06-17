@@ -18,6 +18,7 @@ import { StatusSelect } from "@/components/ui/status-select";
 import { airconTypes, inquiryStatuses, serviceTypes } from "@/lib/constants";
 import type { Database } from "@/lib/database.types";
 import { makeDateScopedReference } from "@/lib/reference";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { inquirySchema } from "@/lib/validation";
 import { formatDate } from "@/lib/utils";
@@ -62,7 +63,7 @@ export function InquiriesManager() {
       supabase.from("quotations").select("*").order("created_at", { ascending: false }),
       supabase.from("service_schedules").select("*").order("next_service_date", { ascending: true })
     ]);
-    if (inquiryResult.error) setError(inquiryResult.error.message);
+    if (inquiryResult.error) setError(getSafeErrorMessage("load inquiries"));
     setInquiries(inquiryResult.data ?? []);
     setQuotations((quoteResult.data ?? []) as Quotation[]);
     setSchedules((scheduleResult.data ?? []) as Schedule[]);
@@ -91,7 +92,7 @@ export function InquiriesManager() {
   async function updateStatus(inquiry: Inquiry, nextStatus: string) {
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("inquiries").update({ status: nextStatus }).eq("id", inquiry.id);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(getSafeErrorMessage("update the inquiry"));
     await load();
   }
 
@@ -116,7 +117,7 @@ export function InquiriesManager() {
     });
 
     if (insertError) {
-      setError(insertError.message);
+      setError(getSafeErrorMessage("save the inquiry"));
       return;
     }
     setOpen(false);

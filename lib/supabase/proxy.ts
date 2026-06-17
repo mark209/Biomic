@@ -4,6 +4,21 @@ import type { Database } from "@/lib/database.types";
 
 const protectedPrefixes = ["/admin"];
 const publicAdminRoutes = ["/admin/login"];
+const allowedAdminRoles = new Set(["admin", "staff"]);
+type StaffProfile = { role: string | null };
+
+function roleFromClaims(claims: Record<string, unknown> | undefined) {
+  const appMetadata = claims?.app_metadata as { role?: unknown; roles?: unknown } | undefined;
+  const userMetadata = claims?.user_metadata as { role?: unknown; roles?: unknown } | undefined;
+  const role = typeof appMetadata?.role === "string" ? appMetadata.role : typeof userMetadata?.role === "string" ? userMetadata.role : null;
+  const roles = Array.isArray(appMetadata?.roles) ? appMetadata.roles : Array.isArray(userMetadata?.roles) ? userMetadata.roles : [];
+
+  if (role && allowedAdminRoles.has(role)) {
+    return role;
+  }
+
+  return roles.find((item): item is string => typeof item === "string" && allowedAdminRoles.has(item)) ?? null;
+}
 
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
@@ -50,10 +65,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isPublicAdmin && claims) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/admin";
-    return NextResponse.redirect(redirectUrl);
+  if (isProtected && !isPublicAdmin && claims && !roleFromClaims(claims as Record<string, unknown>)) {
+    const userId = typeof claims.sub === "string" ? claims.sub : null;
+    let profile: StaffProfile | null = null;
+
+    if (userId) {
+      const { data: profileData } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+      profile = profileData as StaffProfile | null;
+    }
+
+    if (!profile?.role || !allowedAdminRoles.has(profile.role)) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/login";
+      redirectUrl.searchParams.delete("next");
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   return response;

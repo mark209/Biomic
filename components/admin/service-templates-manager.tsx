@@ -11,6 +11,7 @@ import { Input, Select, Textarea } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { CatalogRow, Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { serviceTemplateSchema } from "@/lib/validation";
 import { serviceTypes } from "@/lib/constants";
@@ -48,7 +49,7 @@ export function ServiceTemplatesManager() {
       supabase.from("parts_items").select("*").eq("is_active", true).order("name")
     ]);
 
-    if (templateResult.error) setError(templateResult.error.message);
+    if (templateResult.error) setError(getSafeErrorMessage("load service templates"));
     setTemplates(templateResult.data ?? []);
     setItems((itemResult.data ?? []) as TemplateItem[]);
     setLabor((laborResult.data ?? []) as CatalogRow[]);
@@ -94,7 +95,7 @@ export function ServiceTemplatesManager() {
       ? await (supabase as any).from("service_templates").update(payload).eq("id", editing.id)
       : await (supabase as any).from("service_templates").insert(payload);
     if (result.error) {
-      setError(result.error.message);
+      setError(getSafeErrorMessage("save the service template"));
       return;
     }
     setOpen(false);
@@ -105,7 +106,7 @@ export function ServiceTemplatesManager() {
   async function toggle(template: Template) {
     const supabase = createClient();
     const { error: updateError } = await (supabase as any).from("service_templates").update({ is_active: !template.is_active }).eq("id", template.id);
-    if (updateError) setError(updateError.message);
+    if (updateError) setError(getSafeErrorMessage("update the service template"));
     await load();
   }
 
@@ -125,14 +126,14 @@ export function ServiceTemplatesManager() {
       default_unit_price: source.default_price,
       sort_order: selectedItems.length + 1
     });
-    if (insertError) setError(insertError.message);
+    if (insertError) setError(getSafeErrorMessage("add the template item"));
     await load();
   }
 
   async function removeTemplateItem(item: TemplateItem) {
     const supabase = createClient();
     const { error: deleteError } = await (supabase as any).from("service_template_items").delete().eq("id", item.id);
-    if (deleteError) setError(deleteError.message);
+    if (deleteError) setError(getSafeErrorMessage("remove the template item"));
     await load();
   }
 

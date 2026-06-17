@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CustomerBadges } from "@/components/ui/customer-badges";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, money } from "@/lib/utils";
 import { badgesForCustomer, contactKey, getScheduleWindow, recurrenceLabels, scheduleWindowLabel } from "@/lib/service-workflow";
@@ -42,7 +43,7 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
         supabase.from("quotations").select("*").order("created_at", { ascending: false }),
         supabase.from("service_schedules").select("*").eq("customer_id", customerId).order("next_service_date", { ascending: true })
       ]);
-      if (customerResult.error) setError(customerResult.error.message);
+      if (customerResult.error) setError(getSafeErrorMessage("load the customer profile"));
       const loadedCustomer = customerResult.data as Customer | null;
       setCustomer(loadedCustomer);
       const customerPhone = contactKey(loadedCustomer?.contact_number);

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
 import { airconTypes, serviceTypes } from "@/lib/constants";
 import { makeDateScopedReference } from "@/lib/reference";
+import { getInquiryPhotoExtension, getSafeErrorMessage, validateInquiryPhoto } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { supabaseEnv } from "@/lib/supabase/env";
 import { inquirySchema } from "@/lib/validation";
@@ -43,46 +44,57 @@ export function InquiryForm({ compact = false, hidePhotoUpload = false }: { comp
       return;
     }
 
-    const supabase = createClient();
-    const reference = makeDateScopedReference("DAI");
-    let photoPath: string | null = null;
+    try {
+      const supabase = createClient();
+      const reference = makeDateScopedReference("DAI");
+      let photoPath: string | null = null;
 
-    if (photo) {
-      const extension = photo.name.split(".").pop() ?? "jpg";
-      photoPath = `${reference}/${crypto.randomUUID()}.${extension}`;
-      const { error } = await supabase.storage.from("inquiry-photos").upload(photoPath, photo, {
-        cacheControl: "3600",
-        upsert: false
+      if (photo) {
+        const validationError = await validateInquiryPhoto(photo);
+        if (validationError) {
+          setSubmitError(validationError);
+          return;
+        }
+
+        const extension = getInquiryPhotoExtension(photo.name);
+        photoPath = `${reference}/${crypto.randomUUID()}.${extension}`;
+        const { error } = await supabase.storage.from("inquiry-photos").upload(photoPath, photo, {
+          cacheControl: "3600",
+          contentType: photo.type,
+          upsert: false
+        });
+        if (error) {
+          setSubmitError(getSafeErrorMessage("upload the photo"));
+          return;
+        }
+      }
+
+      const { error } = await (supabase as any).from("inquiries").insert({
+        reference_number: reference,
+        customer_name: values.customer_name,
+        contact_number: values.contact_number,
+        email: values.email || null,
+        address: values.address,
+        service_type: values.service_type,
+        aircon_type: values.aircon_type,
+        brand_model: values.brand_model || null,
+        problem_description: values.problem_description,
+        preferred_schedule: values.preferred_schedule || null,
+        photo_path: photoPath,
+        status: "New"
       });
+
       if (error) {
-        setSubmitError(error.message);
+        setSubmitError(getSafeErrorMessage("submit the service request"));
         return;
       }
+
+      setSuccessRef(reference);
+      setPhoto(null);
+      reset();
+    } catch {
+      setSubmitError(getSafeErrorMessage("submit the service request"));
     }
-
-    const { error } = await (supabase as any).from("inquiries").insert({
-      reference_number: reference,
-      customer_name: values.customer_name,
-      contact_number: values.contact_number,
-      email: values.email || null,
-      address: values.address,
-      service_type: values.service_type,
-      aircon_type: values.aircon_type,
-      brand_model: values.brand_model || null,
-      problem_description: values.problem_description,
-      preferred_schedule: values.preferred_schedule || null,
-      photo_path: photoPath,
-      status: "New"
-    });
-
-    if (error) {
-      setSubmitError(error.message);
-      return;
-    }
-
-    setSuccessRef(reference);
-    setPhoto(null);
-    reset();
   }
 
   if (successRef) {

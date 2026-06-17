@@ -13,6 +13,7 @@ import { MobileCard } from "@/components/ui/mobile-card";
 import { Modal } from "@/components/ui/modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { CatalogRow, Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { catalogItemSchema } from "@/lib/validation";
 import { money } from "@/lib/utils";
@@ -59,7 +60,7 @@ export function CatalogManager({
       supabase.from("service_template_items").select("*"),
       supabase.from("quotation_items").select("*")
     ]);
-    if (catalogResult.error) setError(catalogResult.error.message);
+    if (catalogResult.error) setError(getSafeErrorMessage("load catalog items"));
     setItems((catalogResult.data ?? []) as CatalogRow[]);
     setTemplateItems((templateResult.data ?? []) as TemplateItem[]);
     setQuotationItems((quoteItemResult.data ?? []) as QuotationItem[]);
@@ -106,7 +107,7 @@ export function CatalogManager({
       : await (supabase as any).from(table).insert(payload);
 
     if (result.error) {
-      setError(result.error.message);
+      setError(getSafeErrorMessage("save the catalog item"));
       return;
     }
     setOpen(false);
@@ -116,7 +117,7 @@ export function CatalogManager({
   async function toggle(item: CatalogRow) {
     const supabase = createClient();
     const { error: toggleError } = await (supabase as any).from(table).update({ is_active: !item.is_active }).eq("id", item.id);
-    if (toggleError) setError(toggleError.message);
+    if (toggleError) setError(getSafeErrorMessage("update the catalog item"));
     await load();
   }
 

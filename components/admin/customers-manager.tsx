@@ -15,6 +15,7 @@ import { Input, Textarea } from "@/components/ui/field";
 import { MobileCard } from "@/components/ui/mobile-card";
 import { Modal } from "@/components/ui/modal";
 import type { Database } from "@/lib/database.types";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { customerSchema } from "@/lib/validation";
 import { formatDate } from "@/lib/utils";
@@ -58,7 +59,7 @@ export function CustomersManager() {
       supabase.from("quotations").select("*").order("created_at", { ascending: false }),
       supabase.from("service_schedules").select("*").order("next_service_date", { ascending: true })
     ]);
-    if (customerResult.error) setError(customerResult.error.message);
+    if (customerResult.error) setError(getSafeErrorMessage("load customers"));
     setCustomers(customerResult.data ?? []);
     setInquiries((inquiryResult.data ?? []) as Inquiry[]);
     setQuotations((quoteResult.data ?? []) as Quotation[]);
@@ -124,7 +125,7 @@ export function CustomersManager() {
       : await (supabase as any).from("customers").insert(payload);
 
     if (result.error) {
-      setError(result.error.message);
+      setError(getSafeErrorMessage("save the customer"));
       return;
     }
     setOpen(false);

@@ -8,8 +8,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminPageHeader } from "./admin-page-header";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
+import { Modal } from "@/components/ui/modal";
 import type { CatalogRow, Database } from "@/lib/database.types";
 import { makeDateScopedReference } from "@/lib/reference";
+import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, money } from "@/lib/utils";
 import { quoteTotals } from "@/lib/calculations";
@@ -63,7 +65,6 @@ export function QuotationBuilder() {
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState(defaultTerms);
   const [lines, setLines] = useState<BuilderLine[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
   const [savedQuotationNumber, setSavedQuotationNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestedServiceType, setRequestedServiceType] = useState("");
@@ -87,7 +88,7 @@ export function QuotationBuilder() {
       supabase.from("labor_items").select("*").eq("is_active", true).order("name"),
       supabase.from("parts_items").select("*").eq("is_active", true).order("name")
     ]);
-    if (customerResult.error) setError(customerResult.error.message);
+    if (customerResult.error) setError(getSafeErrorMessage("load quotation data"));
     const loadedCustomers = (customerResult.data ?? []) as Customer[];
     const loadedInquiries = (inquiryResult.data ?? []) as Inquiry[];
     const loadedTemplates = (templateResult.data ?? []) as Template[];
@@ -229,7 +230,6 @@ export function QuotationBuilder() {
 
   async function saveQuotation() {
     setError(null);
-    setMessage(null);
     setSavedQuotationNumber(null);
 
     if (!customer.customer_name || !customer.contact_number || !customer.address) {
@@ -248,10 +248,12 @@ export function QuotationBuilder() {
     } = await supabase.auth.getUser();
 
     let customerId = customer.customer_id || null;
+    let resolvedCustomer: Customer | null = null;
     if (!customerId) {
       const duplicate = findDuplicateCustomers(customers, { contact_number: customer.contact_number, email: customer.email })[0];
       if (duplicate) {
         customerId = duplicate.id;
+        resolvedCustomer = duplicate;
         setCustomer((current) => ({
           ...current,
           customer_id: duplicate.id,
@@ -273,11 +275,19 @@ export function QuotationBuilder() {
           .single();
 
         if (customerError) {
-          setError(customerError.message);
+          setError(getSafeErrorMessage("create the customer"));
           return;
         }
-        customerId = createdCustomer.id;
+        resolvedCustomer = createdCustomer as Customer;
+        customerId = resolvedCustomer.id;
+        setCustomers((current) => [resolvedCustomer as Customer, ...current]);
+        setCustomer((current) => ({
+          ...current,
+          customer_id: resolvedCustomer?.id ?? current.customer_id
+        }));
       }
+    } else {
+      resolvedCustomer = customers.find((item) => item.id === customerId) ?? null;
     }
 
     const { data: quotation, error: quotationError } = await (supabase as any)
@@ -302,7 +312,7 @@ export function QuotationBuilder() {
       .single();
 
     if (quotationError) {
-      setError(quotationError.message);
+      setError(getSafeErrorMessage("save the quotation"));
       return;
     }
 
@@ -321,15 +331,45 @@ export function QuotationBuilder() {
 
     const { error: itemError } = await (supabase as any).from("quotation_items").insert(quoteItems);
     if (itemError) {
-      setError(itemError.message);
+      setError(getSafeErrorMessage("save quotation line items"));
       return;
     }
 
-    if (customer.inquiry_id) {
-      await (supabase as any).from("inquiries").update({ status: "Quoted", customer_id: customerId }).eq("id", customer.inquiry_id);
+    if (customer.inquiry_id && customerId) {
+      const { error: inquiryUpdateError } = await (supabase as any)
+        .from("inquiries")
+        .update({
+          status: "Quoted",
+          customer_id: customerId,
+          customer_name: resolvedCustomer?.name ?? customer.customer_name,
+          contact_number: resolvedCustomer?.contact_number ?? customer.contact_number,
+          email: resolvedCustomer?.email ?? (customer.email || null),
+          address: resolvedCustomer?.address ?? customer.address
+        })
+        .eq("id", customer.inquiry_id);
+
+      if (inquiryUpdateError) {
+        setError("Quotation was saved, but the inquiry customer could not be moved to Customers. Please review the inquiry manually.");
+        return;
+      }
+
+      setInquiries((current) =>
+        current.map((inquiry) =>
+          inquiry.id === customer.inquiry_id
+            ? {
+                ...inquiry,
+                status: "Quoted",
+                customer_id: customerId,
+                customer_name: resolvedCustomer?.name ?? customer.customer_name,
+                contact_number: resolvedCustomer?.contact_number ?? customer.contact_number,
+                email: resolvedCustomer?.email ?? (customer.email || null),
+                address: resolvedCustomer?.address ?? customer.address
+              }
+            : inquiry
+        )
+      );
     }
 
-    setMessage(`Quotation ${quotationNumber} saved successfully.`);
     setSavedQuotationNumber(quotationNumber);
     setLines([]);
     setSelectedTemplate("");
@@ -340,7 +380,25 @@ export function QuotationBuilder() {
     <section>
       <AdminPageHeader title="Quotation Builder" description="Create snapshot-based quotations from inquiries, customers, templates, and custom items." />
       {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-semibold text-danger">{error}</div> : null}
-      {message ? <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-success">{message}</div> : null}
+      <Modal title="Quotation saved" open={Boolean(savedQuotationNumber)} onClose={() => setSavedQuotationNumber(null)}>
+        <div className="grid gap-4">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-semibold text-success">
+              Quotation {savedQuotationNumber} saved successfully. Customer is now available in Customers.
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setSavedQuotationNumber(null)}>
+              Close
+            </Button>
+            {savedQuotationNumber ? (
+              <Link href={`/admin/quotations?search=${encodeURIComponent(savedQuotationNumber)}`}>
+                <Button>View saved quotation</Button>
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </Modal>
 
       <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
         <div className="admin-panel min-w-0 p-5">
@@ -446,11 +504,6 @@ export function QuotationBuilder() {
             <Save className="h-4 w-4" />
             Save quotation
           </Button>
-          {savedQuotationNumber ? (
-            <Link href={`/admin/quotations?search=${encodeURIComponent(savedQuotationNumber)}`} className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 text-sm font-bold text-ink hover:bg-primary-50">
-              View saved quotation
-            </Link>
-          ) : null}
         </div>
       </div>
     </section>
