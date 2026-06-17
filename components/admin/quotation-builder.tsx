@@ -134,15 +134,6 @@ export function QuotationBuilder() {
     });
   }
 
-  function selectCustomer(customerId: string) {
-    const found = customers.find((item) => item.id === customerId);
-    if (!found) {
-      setCustomer((current) => ({ ...current, customer_id: "" }));
-      return;
-    }
-    applyCustomer(found);
-  }
-
   function selectInquiry(inquiry: Inquiry) {
     setRequestedServiceType(inquiry.service_type);
     setCustomer({
@@ -404,10 +395,6 @@ export function QuotationBuilder() {
         <div className="admin-panel min-w-0 p-5">
           <StepTitle step={1} title="Customer" icon={UserRound} />
           <div className="mt-4 grid min-w-0 gap-4">
-            <Select label="Select existing customer" value={customer.customer_id} onChange={(event) => selectCustomer(event.target.value)}>
-              <option value="">Manual new customer</option>
-              {customers.map((item) => <option key={item.id} value={item.id}>{item.name} - {item.contact_number}</option>)}
-            </Select>
             <Select label="Select existing inquiry" value={customer.inquiry_id} onChange={(event) => {
               const found = inquiries.find((item) => item.id === event.target.value);
               if (found) {
@@ -466,7 +453,7 @@ export function QuotationBuilder() {
           <div className="mt-6 border-t border-line pt-5">
             <StepTitle step={3} title="Labor & Parts" icon={Wrench} />
           </div>
-          <div className="mt-5 grid min-w-0 gap-3">
+          <div className="mt-5 grid max-h-[28rem] min-w-0 gap-3 overflow-y-auto pr-1 xl:max-h-[34rem]">
             {lines.map((line) => (
               <div key={line.id} className="grid min-w-0 gap-3 rounded-lg border border-line bg-slate-50 p-3 lg:grid-cols-[minmax(0,1fr)_6rem_8rem_8rem_auto] lg:items-end">
                 <Input label="Item" value={line.name_snapshot} onChange={(event) => updateLine(line.id, { name_snapshot: event.target.value })} />

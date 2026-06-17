@@ -16,3 +16,4 @@ node_modules
 tsconfig.tsbuildinfo
 out
 dist
+static-site-dist

@@ -38,7 +38,7 @@ import { getSafeErrorMessage } from "@/lib/security";
 import { createClient } from "@/lib/supabase/client";
 import { serviceScheduleSchema } from "@/lib/validation";
 import { cn, formatDate } from "@/lib/utils";
-import { formatDateInput, getScheduleWindow, nextServiceDateFrom, recurrenceLabels } from "@/lib/service-workflow";
+import { formatDateInput, getScheduleWindow, nextServiceDateFrom, recurrenceLabels, scheduleDatesFromServiceDate } from "@/lib/service-workflow";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
 type Inquiry = Database["public"]["Tables"]["inquiries"]["Row"];
@@ -241,14 +241,15 @@ export function ServiceScheduleManager() {
     setError(null);
     setSuccess(null);
     const supabase = createClient();
+    const scheduleDates = scheduleDatesFromServiceDate(values.recurrence_type, values.start_date);
     const { error: insertError } = await (supabase as any).from("service_schedules").insert({
       customer_id: values.customer_id,
       inquiry_id: values.inquiry_id || null,
       quotation_id: values.quotation_id || null,
       service_type: values.service_type,
       recurrence_type: values.recurrence_type,
-      start_date: values.start_date,
-      next_service_date: values.next_service_date,
+      start_date: scheduleDates.start_date,
+      next_service_date: scheduleDates.next_service_date,
       status: values.status,
       assigned_technician: values.assigned_technician || null,
       notes: values.notes || null
@@ -636,10 +637,16 @@ export function ServiceScheduleManager() {
             <Select label="Service type" {...register("service_type")}>{serviceTypes.map((type) => <option key={type}>{type}</option>)}</Select>
             <Select label="Recurrence" {...register("recurrence_type")}>{recurrenceTypes.map((type) => <option key={type} value={type}>{recurrenceLabels[type]}</option>)}</Select>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Start date" type="date" {...register("start_date")} error={errors.start_date?.message} />
-            <Input label="Next service date" type="date" {...register("next_service_date")} error={errors.next_service_date?.message} />
-          </div>
+          <Input
+            label="Service date"
+            type="date"
+            {...register("start_date")}
+            error={errors.start_date?.message}
+            onChange={(event) => {
+              setValue("start_date", event.target.value);
+              setValue("next_service_date", event.target.value);
+            }}
+          />
           <div className="grid gap-4 md:grid-cols-2">
             <Select label="Status" {...register("status")} error={errors.status?.message}>
               <option value="active">Active</option>

@@ -2,6 +2,16 @@ const menuButton = document.querySelector(".menu-button");
 const closeButton = document.querySelector(".close-button");
 const mobileMenu = document.querySelector(".mobile-menu");
 const mobileLinks = document.querySelectorAll(".mobile-menu a");
+const portalBaseUrl = window.__PORTAL_BASE_URL__;
+
+if (portalBaseUrl) {
+  document.querySelectorAll("[data-portal-path]").forEach((link) => {
+    const path = link.getAttribute("data-portal-path");
+    if (path) {
+      link.setAttribute("href", new URL(path, portalBaseUrl).toString());
+    }
+  });
+}
 
 function openMenu() {
   mobileMenu.hidden = false;

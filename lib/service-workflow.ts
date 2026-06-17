@@ -105,6 +105,13 @@ export function nextServiceDateFrom(recurrenceType: string, baseDate = new Date(
   return formatDateInput(next);
 }
 
+export function scheduleDatesFromServiceDate(_recurrenceType: string, serviceDate: string) {
+  return {
+    start_date: serviceDate,
+    next_service_date: serviceDate
+  };
+}
+
 export function contactKey(value: string | null | undefined) {
   return (value ?? "").replace(/\D/g, "");
 }

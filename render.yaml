@@ -3,6 +3,7 @@ services:
     name: biomic-whiz-trading
     runtime: node
     plan: free
+    rootDir: .
     buildCommand: npm ci && npm run build
     startCommand: npm start
     autoDeploy: true
@@ -13,3 +14,17 @@ services:
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
         sync: false
+
+  - type: static
+    name: biomic-whiz-landing
+    rootDir: .
+    buildCommand: npm ci && npm run build:static
+    staticPublishPath: static-site-dist
+    autoDeploy: true
+    envVars:
+      - key: STATIC_PORTAL_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

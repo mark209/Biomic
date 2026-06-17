@@ -5,6 +5,7 @@ import {
   badgesForInquiry,
   catalogUsageForItem,
   findDuplicateCustomers,
+  scheduleDatesFromServiceDate,
   sortInquiriesForOps,
   sortNotificationsForOps
 } from "../lib/service-workflow.ts";
@@ -116,6 +117,17 @@ test("badgesForInquiry does not mark same-name different-contact inquiries as re
   };
 
   assert.deepEqual(badgesForInquiry(newInquiry, [previousInquiry, newInquiry], [], []), ["NEW CUSTOMER"]);
+});
+
+test("scheduleDatesFromServiceDate uses one selected service date for new schedules", () => {
+  assert.deepEqual(scheduleDatesFromServiceDate("none", "2026-06-17"), {
+    start_date: "2026-06-17",
+    next_service_date: "2026-06-17"
+  });
+  assert.deepEqual(scheduleDatesFromServiceDate("monthly", "2026-06-17"), {
+    start_date: "2026-06-17",
+    next_service_date: "2026-06-17"
+  });
 });
 
 test("catalogUsageForItem detects quotation and template references", () => {

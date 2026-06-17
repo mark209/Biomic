@@ -1,8 +1,13 @@
 services:
   - type: static
     name: biomic-whiz-landing
-    buildCommand: echo "Static landing page"
-    staticPublishPath: static-site
+    rootDir: .
+    buildCommand: npm ci && npm run build:static
+    staticPublishPath: static-site-dist
+    autoDeploy: true
+    envVars:
+      - key: STATIC_PORTAL_URL
+        sync: false
     routes:
       - type: rewrite
         source: /*
