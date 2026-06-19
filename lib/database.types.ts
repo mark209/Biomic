@@ -206,6 +206,47 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["service_schedules"]["Row"]>;
       };
+      hq_billing_records: {
+        Row: {
+          id: string;
+          service_reference: string;
+          client_branch: string;
+          service_type: string;
+          service_date: string;
+          technician: string | null;
+          service_location: string | null;
+          po_number: string | null;
+          po_date: string | null;
+          po_amount: number | null;
+          po_attachment_url: string | null;
+          po_attachment_name: string | null;
+          po_attachment_type: string | null;
+          po_attachment_size: number | null;
+          gr_number: string | null;
+          gr_date: string | null;
+          gr_remarks: string | null;
+          billing_status: "For Billing" | "Billed" | "Backjob" | "Pending Payment" | "Paid";
+          amount: number;
+          billing_submitted_date: string | null;
+          expected_payment_date: string | null;
+          actual_payment_date: string | null;
+          remarks: string | null;
+          created_by: string | null;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["hq_billing_records"]["Row"]> & {
+          service_reference: string;
+          client_branch: string;
+          service_type: string;
+          service_date: string;
+          billing_status: "For Billing" | "Billed" | "Backjob" | "Pending Payment" | "Paid";
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["hq_billing_records"]["Row"]>;
+      };
       notifications: {
         Row: {
           id: string;

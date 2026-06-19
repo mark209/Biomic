@@ -1,11 +1,5 @@
-import { CatalogManager } from "@/components/admin/catalog-manager";
+import { redirect } from "next/navigation";
 
 export default function PartsItemsPage() {
-  return (
-    <CatalogManager
-      table="parts_items"
-      title="Parts Items"
-      description="Maintain default parts names and prices used for future quotations."
-    />
-  );
+  redirect("/admin/item-library?tab=parts");
 }

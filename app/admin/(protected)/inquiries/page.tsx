@@ -1,10 +1,16 @@
-import { Suspense } from "react";
-import { InquiriesManager } from "@/components/admin/inquiries-manager";
+import { redirect } from "next/navigation";
 
-export default function InquiriesPage() {
-  return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading inquiries...</p>}>
-      <InquiriesManager />
-    </Suspense>
-  );
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function InquiriesPage({ searchParams }: PageProps) {
+  const params = new URLSearchParams();
+  const resolved = await searchParams;
+  Object.entries(resolved ?? {}).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item));
+    else if (value) params.set(key, value);
+  });
+  params.set("tab", "inquiries");
+  redirect(`/admin/service-desk?${params.toString()}`);
 }

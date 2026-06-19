@@ -49,7 +49,7 @@ function StepTitle({ step, title, icon: Icon }: { step: number; title: string; i
   );
 }
 
-export function QuotationBuilder() {
+export function QuotationBuilder({ showHeader = true }: { showHeader?: boolean }) {
   const params = useSearchParams();
   const inquiryId = params.get("inquiry");
   const customerIdParam = params.get("customer");
@@ -369,7 +369,7 @@ export function QuotationBuilder() {
 
   return (
     <section>
-      <AdminPageHeader title="Quotation Builder" description="Create snapshot-based quotations from inquiries, customers, templates, and custom items." />
+      {showHeader ? <AdminPageHeader title="Quotation Builder" description="Create snapshot-based quotations from inquiries, customers, templates, and custom items." /> : null}
       {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-semibold text-danger">{error}</div> : null}
       <Modal title="Quotation saved" open={Boolean(savedQuotationNumber)} onClose={() => setSavedQuotationNumber(null)}>
         <div className="grid gap-4">

@@ -1,5 +1,5 @@
-import { ServiceTemplatesManager } from "@/components/admin/service-templates-manager";
+import { redirect } from "next/navigation";
 
 export default function ServiceTemplatesPage() {
-  return <ServiceTemplatesManager />;
+  redirect("/admin/item-library?tab=templates");
 }

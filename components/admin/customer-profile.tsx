@@ -285,8 +285,8 @@ export function CustomerProfile({ customerId }: { customerId: string }) {
         action={
           customer ? (
             <div className="flex flex-wrap gap-2">
-              <Link href={`/admin/service-schedule?customer=${customer.id}`}><Button variant="outline"><CalendarDays className="h-4 w-4" /> Create Monthly Service</Button></Link>
-              <Link href={`/admin/quotation-builder?customer=${customer.id}`}><Button><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
+              <Link href={`/admin/service-desk?tab=schedule&customer=${customer.id}`}><Button variant="outline"><CalendarDays className="h-4 w-4" /> Create Monthly Service</Button></Link>
+              <Link href={`/admin/quotations?action=create&customer=${customer.id}`}><Button><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
             </div>
           ) : null
         }

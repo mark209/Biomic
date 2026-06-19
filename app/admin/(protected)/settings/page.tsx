@@ -1,20 +1,31 @@
-import { CheckCircle2, FileText, LockKeyhole, LogOut, Settings, ShieldCheck } from "lucide-react";
+import { Building2, CalendarDays, FileText, ShieldCheck } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/admin-page-header";
 
-const setupItems = [
-  "Supabase Auth protects all admin pages.",
-  "Public visitors can only submit service inquiries.",
-  "Quotation PDFs use saved snapshot values, so old quotations do not change when prices are updated.",
-  "Service schedules and notifications are visible only to signed-in staff."
+const serviceCenterInfo = [
+  ["Business name", "Daikin Authorized Service Center"],
+  ["Branch name", "Service Center Pro"],
+  ["Contact email", "admin@daikin.com"],
+  ["Contact number", "Not set"],
+  ["Office address", "Not set"]
 ];
 
-const officeDefaults = [
-  ["Quotation validity", "15 days unless changed in quotation terms"],
+const documentDefaults = [
+  ["Quotation validity", "15 days"],
   ["Default quotation status", "Draft"],
+  ["Currency", "PHP"],
   ["Inquiry reference format", "DAI-YYYY-MMDD-####"],
-  ["Quotation reference format", "QT-YYYY-MMDD-####"],
-  ["Currency shown in PDFs", "PHP"],
-  ["Schedule reminder window", "Services due within 7 days"]
+  ["Quotation reference format", "QT-YYYY-MMDD-####"]
+];
+
+const scheduleDefaults = [
+  ["Reminder window", "Services due within 7 days"],
+  ["Default service status", "Scheduled"]
+];
+
+const accessDefaults = [
+  ["Admin users", "Managed by authorized staff"],
+  ["Account access", "Use your assigned admin email and password"],
+  ["Session safety", "Sign out after using a shared office computer"]
 ];
 
 export default function SettingsPage() {
@@ -22,120 +33,73 @@ export default function SettingsPage() {
     <section>
       <AdminPageHeader
         title="Settings"
-        description="Operational settings and quick reference for office staff."
+        description="Manage basic service center preferences and document defaults."
       />
 
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <div className="grid gap-5">
-          <section className="admin-panel p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-primary-100 text-primary-800">
-                <Settings className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="font-bold text-ink">Service Center Profile</h2>
-                <p className="text-sm text-muted">Information used across admin workflows and quotation documents.</p>
-              </div>
-            </div>
-            <dl className="mt-5 grid gap-3 text-sm md:grid-cols-2">
-              <div className="rounded-lg border border-line bg-slate-50 p-3">
-                <dt className="font-bold text-ink">Business name</dt>
-                <dd className="mt-1 text-muted">Daikin Authorized Service Center</dd>
-              </div>
-              <div className="rounded-lg border border-line bg-slate-50 p-3">
-                <dt className="font-bold text-ink">System purpose</dt>
-                <dd className="mt-1 text-muted">Inquiries, customers, schedules, and quotations</dd>
-              </div>
-              <div className="rounded-lg border border-line bg-slate-50 p-3">
-                <dt className="font-bold text-ink">PDF header</dt>
-                <dd className="mt-1 text-muted">Company name with logo placeholder</dd>
-              </div>
-              <div className="rounded-lg border border-line bg-slate-50 p-3">
-                <dt className="font-bold text-ink">Admin users</dt>
-                <dd className="mt-1 text-muted">Managed in Supabase Auth</dd>
-              </div>
-            </dl>
-          </section>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <SettingsCard
+          icon={<Building2 className="h-5 w-5" />}
+          title="Service Center Information"
+          description="Basic office details shown for staff reference."
+          rows={serviceCenterInfo}
+        />
 
-          <section className="admin-panel p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-emerald-100 text-emerald-800">
-                <FileText className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="font-bold text-ink">Office Defaults</h2>
-                <p className="text-sm text-muted">Current defaults used by the MVP.</p>
-              </div>
-            </div>
-            <div className="mt-5 grid gap-3">
-              {officeDefaults.map(([label, value]) => (
-                <div key={label} className="flex flex-col gap-1 rounded-lg border border-line bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-sm font-bold text-ink">{label}</span>
-                  <span className="text-sm text-muted">{value}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+        <SettingsCard
+          icon={<FileText className="h-5 w-5" />}
+          title="Document Defaults"
+          description="Default values used when preparing documents."
+          rows={documentDefaults}
+        />
 
-        <div className="grid gap-5">
-          <section className="admin-panel p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-primary-100 text-primary-800">
-                <LogOut className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="font-bold text-ink">Where to Sign Out</h2>
-                <p className="text-sm text-muted">Use sign out when leaving a shared office computer.</p>
-              </div>
-            </div>
-            <ol className="mt-5 grid list-decimal gap-2 pl-5 text-sm leading-6 text-muted">
-              <li>On desktop, use the **Sign out** button in the top-right header or bottom-left sidebar.</li>
-              <li>On mobile, tap the menu button, then tap **Sign out** at the bottom of the menu.</li>
-              <li>After signing out, the system returns to the admin login page.</li>
-            </ol>
-          </section>
+        <SettingsCard
+          icon={<CalendarDays className="h-5 w-5" />}
+          title="Schedule Defaults"
+          description="Standard scheduling preferences for service work."
+          rows={scheduleDefaults}
+        />
 
-          <section className="admin-panel p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-emerald-100 text-emerald-800">
-                <ShieldCheck className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="font-bold text-ink">Security Checklist</h2>
-                <p className="text-sm text-muted">Current production safeguards.</p>
-              </div>
-            </div>
-            <ul className="mt-5 grid gap-3">
-              {setupItems.map((item) => (
-                <li key={item} className="flex gap-3 rounded-lg border border-line bg-slate-50 p-3 text-sm text-muted">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+        <SettingsCard
+          icon={<ShieldCheck className="h-5 w-5" />}
+          title="Account & Access"
+          description="Simple account access notes for office users."
+          rows={accessDefaults}
+        />
+      </div>
+    </section>
+  );
+}
 
-          <section className="admin-panel p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-md bg-amber-100 text-amber-800">
-                <LockKeyhole className="h-5 w-5" />
-              </span>
-              <div>
-                <h2 className="font-bold text-ink">Environment Keys</h2>
-                <p className="text-sm text-muted">These are configured outside the app before deployment.</p>
-              </div>
-            </div>
-            <div className="mt-5 rounded-md bg-slate-100 p-3 font-mono text-xs leading-6 text-muted">
-              NEXT_PUBLIC_SUPABASE_URL<br />
-              NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-            </div>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Do not place service-role or secret keys in the frontend.
-            </p>
-          </section>
+function SettingsCard({
+  icon,
+  title,
+  description,
+  rows
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  rows: string[][];
+}) {
+  return (
+    <section className="admin-panel p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-primary-100 text-primary-800">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-bold text-ink">{title}</h2>
+          <p className="mt-1 text-sm leading-5 text-muted">{description}</p>
         </div>
       </div>
+
+      <dl className="mt-5 grid gap-3">
+        {rows.map(([label, value]) => (
+          <div key={label} className="rounded-lg border border-line bg-slate-50 px-4 py-3">
+            <dt className="text-xs font-extrabold uppercase tracking-wide text-muted">{label}</dt>
+            <dd className="mt-1 break-words text-sm font-semibold text-ink">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

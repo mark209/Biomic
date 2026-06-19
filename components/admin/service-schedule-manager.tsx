@@ -741,7 +741,7 @@ function ActionMenu({
         className="fixed z-[80] w-56 rounded-lg border border-line bg-white p-1.5 text-sm shadow-soft"
         style={{ top: position.top, left: position.left }}
       >
-        <Link href={`/admin/quotation-builder?customer=${schedule.customer_id}&service=${encodeURIComponent(schedule.service_type)}`} className="flex items-center gap-2 rounded-md px-3 py-2 font-semibold text-ink hover:bg-primary-50" onClick={onClose}>
+        <Link href={`/admin/quotations?action=create&customer=${schedule.customer_id}&service=${encodeURIComponent(schedule.service_type)}`} className="flex items-center gap-2 rounded-md px-3 py-2 font-semibold text-ink hover:bg-primary-50" onClick={onClose}>
           <ClipboardList className="h-4 w-4" /> Create Quotation
         </Link>
         <button className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left font-semibold text-ink hover:bg-primary-50 disabled:opacity-50" onClick={onMarkScheduled} disabled={busyAction !== null || schedule.status === "active"}>
@@ -835,7 +835,7 @@ function ScheduleDrawer({
         <section className="pt-5">
           <h3 className="text-sm font-extrabold text-ink">Actions</h3>
           <div className="mt-4 grid gap-2">
-            <Link href={`/admin/quotation-builder?customer=${schedule.customer_id}&service=${encodeURIComponent(schedule.service_type)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-bold text-primary-700 transition hover:bg-primary-50">
+            <Link href={`/admin/quotations?action=create&customer=${schedule.customer_id}&service=${encodeURIComponent(schedule.service_type)}`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-bold text-primary-700 transition hover:bg-primary-50">
               <ClipboardList className="h-4 w-4" /> Create Quotation
             </Link>
             <Button variant="success" disabled={busyAction !== null || schedule.status === "completed" || schedule.status === "cancelled"} onClick={onMarkCompleted}><CheckCircle2 className="h-4 w-4" /> Mark Completed</Button>

@@ -27,7 +27,13 @@ function inquiryStatusForQuotationStatus(status: string) {
   return null;
 }
 
-export function QuotationsManager() {
+export function QuotationsManager({
+  initialStatus = "All",
+  showHeader = true
+}: {
+  initialStatus?: string;
+  showHeader?: boolean;
+}) {
   const params = useSearchParams();
   const [quotes, setQuotes] = useState<Quotation[]>([]);
   const [items, setItems] = useState<QuotationItem[]>([]);
@@ -55,12 +61,17 @@ export function QuotationsManager() {
     if (search) setQuery(search);
   }, [params]);
 
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
+
   const filtered = useMemo(() => {
     return quotes.filter((quote) => {
       const matchesStatus = status === "All" || quote.status === status;
       return matchesStatus && `${quote.quotation_number} ${quote.customer_name} ${quote.contact_number}`.toLowerCase().includes(query.toLowerCase());
     });
   }, [quotes, query, status]);
+  const filterStatuses = useMemo(() => (quotationStatuses.includes(status) || status === "All" ? quotationStatuses : [status, ...quotationStatuses]), [status]);
 
   async function updateStatus(quote: Quotation, nextStatus: string) {
     const supabase = createClient();
@@ -120,7 +131,7 @@ export function QuotationsManager() {
       cell: (row) => (
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={() => exportPdf(row)}><Download className="h-4 w-4" /> PDF</Button>
-          <Link href={`/admin/service-schedule?quotation=${row.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link>
+          <Link href={`/admin/service-desk?tab=schedule&quotation=${row.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link>
         </div>
       )
     }
@@ -128,17 +139,19 @@ export function QuotationsManager() {
 
   return (
     <section>
-      <AdminPageHeader
-        title="Quotations"
-        description="Review quote status, totals, and export customer-ready PDF files."
-        action={<Link href="/admin/quotation-builder"><Button><FileText className="h-4 w-4" /> Create quotation</Button></Link>}
-      />
+      {showHeader ? (
+        <AdminPageHeader
+          title="Quotations"
+          description="Review quote status, totals, and export customer-ready PDF files."
+          action={<Link href="/admin/quotations?action=create"><Button><FileText className="h-4 w-4" /> Create quotation</Button></Link>}
+        />
+      ) : null}
       {error ? <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-semibold text-danger">{error}</div> : null}
       <div className="mb-4 grid gap-3 md:grid-cols-[minmax(0,22rem)_14rem]">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search quotations, customer, phone" className="focus-ring min-h-11 rounded-md border-line bg-white text-sm" />
         <select value={status} onChange={(event) => setStatus(event.target.value)} className="min-h-11 rounded-md border-line bg-white text-sm">
           <option>All</option>
-          {quotationStatuses.map((item) => <option key={item}>{item}</option>)}
+          {filterStatuses.map((item) => <option key={item}>{item}</option>)}
         </select>
       </div>
       <DataTable rows={filtered} columns={columns} emptyTitle="No quotations" />
@@ -150,7 +163,7 @@ export function QuotationsManager() {
             subtitle={`${quote.customer_name} - ${money(quote.grand_total)}`}
             status={quote.status}
             meta={formatDate(quote.created_at)}
-            action={<><Button size="sm" variant="outline" onClick={() => exportPdf(quote)}><Download className="h-4 w-4" /> PDF</Button><Link href={`/admin/service-schedule?quotation=${quote.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link></>}
+            action={<><Button size="sm" variant="outline" onClick={() => exportPdf(quote)}><Download className="h-4 w-4" /> PDF</Button><Link href={`/admin/service-desk?tab=schedule&quotation=${quote.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link></>}
           />
         ))}
       </div>

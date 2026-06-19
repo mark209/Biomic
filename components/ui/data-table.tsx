@@ -25,8 +25,8 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={`hidden overflow-x-auto rounded-lg border border-line bg-white shadow-panel ${breakpoint === "xl" ? "xl:block" : "lg:block"}`}>
-      <table className="w-full border-collapse text-left">
+    <div className={`hidden max-w-full overflow-x-auto rounded-lg border border-line bg-white shadow-panel ${breakpoint === "xl" ? "xl:block" : "lg:block"}`}>
+      <table className="w-full min-w-[760px] table-fixed border-collapse text-left">
         <thead className="sticky top-0 z-10">
           <tr className="border-b border-line bg-slate-50 text-xs uppercase tracking-wide text-muted shadow-[0_1px_0_rgba(190,200,210,0.8)]">
             {columns.map((column) => (
@@ -41,7 +41,9 @@ export function DataTable<T>({
             <tr key={index} className="bg-white transition even:bg-slate-50/45 hover:bg-primary-50/70">
               {columns.map((column) => (
                 <td key={column.key} className={column.className ?? "px-4 py-4 align-middle"}>
-                  {column.cell(row)}
+                  <div className="min-w-0 break-words">
+                    {column.cell(row)}
+                  </div>
                 </td>
               ))}
             </tr>

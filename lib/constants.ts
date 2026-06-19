@@ -1,15 +1,11 @@
 import {
-  ClipboardList,
   ContactRound,
-  CalendarDays,
-  FileText,
+  CircleDollarSign,
   Gauge,
-  Hammer,
   HelpCircle,
   Package,
   ReceiptText,
-  UserRoundCog,
-  Users
+  UserRoundCog
 } from "lucide-react";
 
 export const inquiryStatuses = [
@@ -27,6 +23,8 @@ export const quotationStatuses = ["Draft", "Sent", "Approved", "Rejected", "Comp
 export const recurrenceTypes = ["none", "monthly", "quarterly", "semi_annual", "annual"] as const;
 
 export const serviceScheduleStatuses = ["active", "paused", "completed", "cancelled"] as const;
+
+export const hqBillingStatuses = ["For Billing", "Billed", "Backjob", "Pending Payment", "Paid"] as const;
 
 export const notificationTypes = [
   "new_website_inquiry",
@@ -59,14 +57,10 @@ export const airconTypes = [
 
 export const adminNav = [
   { href: "/admin", label: "Dashboard", icon: Gauge },
-  { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/inquiries", label: "Inquiries", icon: ContactRound },
-  { href: "/admin/service-schedule", label: "Service Schedule", icon: CalendarDays },
-  { href: "/admin/quotation-builder", label: "Quotation Builder", icon: ClipboardList },
+  { href: "/admin/service-desk", label: "Service Desk", icon: ContactRound, match: ["/admin/service-desk", "/admin/customers", "/admin/inquiries", "/admin/service-schedule"] },
   { href: "/admin/quotations", label: "Quotations", icon: ReceiptText },
-  { href: "/admin/labor-items", label: "Labor Items", icon: Hammer },
-  { href: "/admin/parts-items", label: "Parts Items", icon: Package },
-  { href: "/admin/service-templates", label: "Service Templates", icon: FileText },
+  { href: "/admin/item-library", label: "Item Library", icon: Package, match: ["/admin/item-library", "/admin/labor-items", "/admin/parts-items", "/admin/service-templates"] },
+  { href: "/admin/hq-billing", label: "PO / GR Records", icon: CircleDollarSign },
   { href: "/admin/help", label: "Help / User Guide", icon: HelpCircle },
   { href: "/admin/settings", label: "Settings", icon: UserRoundCog }
 ] as const;

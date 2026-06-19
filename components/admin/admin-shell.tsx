@@ -22,6 +22,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = adminNav;
+  const isActive = (item: (typeof adminNav)[number]) => {
+    const matches = "match" in item ? item.match : [item.href];
+    return matches.some((href) => pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`)));
+  };
 
   return (
     <div className="min-h-screen bg-surface pb-20 lg:pb-0">
@@ -37,7 +41,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="flex flex-1 flex-col gap-1">
           {navItems.map((item) => {
-            const active = pathname === item.href;
+            const active = isActive(item);
             const Icon = item.icon;
             return (
               <Link
@@ -83,7 +87,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-line bg-white lg:hidden">
         {adminNav.slice(0, 5).map((item) => {
-          const active = pathname === item.href;
+          const active = isActive(item);
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} className={cn("grid gap-1 px-1 py-2 text-center text-[11px] font-bold", active ? "text-primary-700" : "text-muted")}>
@@ -104,13 +108,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav className="grid gap-1 p-4">
             {navItems.map((item) => {
+              const active = isActive(item);
               const Icon = item.icon;
               return (
                 <Link
                   key={`${item.href}-${item.label}-mobile`}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-3 py-3 font-bold text-muted hover:bg-primary-50 hover:text-primary-800"
+                  className={cn(
+                    "flex items-center gap-3 rounded-md px-3 py-3 font-bold transition",
+                    active ? "bg-primary-50 text-primary-800 ring-1 ring-primary-100" : "text-muted hover:bg-primary-50 hover:text-primary-800"
+                  )}
                 >
                   <Icon className="h-5 w-5" />
                   {item.label}

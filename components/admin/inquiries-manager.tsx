@@ -148,11 +148,11 @@ export function InquiriesManager() {
       className: "px-4 py-3 text-right",
       cell: (row) => (
         <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={() => router.push(`/admin/quotation-builder?inquiry=${row.id}`)}>
+          <Button size="sm" variant="outline" onClick={() => router.push(`/admin/quotations?action=create&inquiry=${row.id}`)}>
             <FileText className="h-4 w-4" />
             Create Quotation
           </Button>
-          <Link href={`/admin/service-schedule?inquiry=${row.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link>
+          <Link href={`/admin/service-desk?tab=schedule&inquiry=${row.id}`}><Button size="sm" variant="outline"><CalendarDays className="h-4 w-4" /> Schedule</Button></Link>
         </div>
       )
     }
@@ -182,7 +182,7 @@ export function InquiriesManager() {
               subtitle={`${inquiry.customer_name} - ${inquiry.service_type}`}
               status={inquiry.status}
               meta={formatDate(inquiry.created_at)}
-              action={<div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => router.push(`/admin/quotation-builder?inquiry=${inquiry.id}`)}>Create Quotation</Button><Link href={`/admin/service-schedule?inquiry=${inquiry.id}`}><Button size="sm" variant="outline">Schedule</Button></Link></div>}
+              action={<div className="flex flex-wrap gap-2"><Button size="sm" onClick={() => router.push(`/admin/quotations?action=create&inquiry=${inquiry.id}`)}>Create Quotation</Button><Link href={`/admin/service-desk?tab=schedule&inquiry=${inquiry.id}`}><Button size="sm" variant="outline">Schedule</Button></Link></div>}
             />
             <CustomerBadges badges={badgesForInquiry(inquiry, inquiries, quotations, schedules)} />
           </div>

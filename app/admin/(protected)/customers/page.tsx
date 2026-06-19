@@ -1,10 +1,16 @@
-import { Suspense } from "react";
-import { CustomersManager } from "@/components/admin/customers-manager";
+import { redirect } from "next/navigation";
 
-export default function CustomersPage() {
-  return (
-    <Suspense fallback={<p className="text-sm text-muted">Loading customers...</p>}>
-      <CustomersManager />
-    </Suspense>
-  );
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function CustomersPage({ searchParams }: PageProps) {
+  const params = new URLSearchParams();
+  const resolved = await searchParams;
+  Object.entries(resolved ?? {}).forEach(([key, value]) => {
+    if (Array.isArray(value)) value.forEach((item) => params.append(key, item));
+    else if (value) params.set(key, value);
+  });
+  params.set("tab", "customers");
+  redirect(`/admin/service-desk?${params.toString()}`);
 }

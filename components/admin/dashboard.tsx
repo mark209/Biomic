@@ -206,8 +206,8 @@ export function Dashboard() {
         action={
           <div className="flex flex-wrap gap-3">
             <Link href="/admin/customers"><Button variant="outline" className="shadow-sm"><UserRound className="h-4 w-4" /> New Customer</Button></Link>
-            <Link href="/admin/quotation-builder"><Button variant="outline" className="shadow-sm"><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
-            <Link href="/admin/inquiries"><Button className="shadow-sm"><Bell className="h-4 w-4" /> New Inquiry</Button></Link>
+            <Link href="/admin/quotations?action=create"><Button variant="outline" className="shadow-sm"><FileText className="h-4 w-4" /> Create Quotation</Button></Link>
+            <Link href="/admin/service-desk?tab=inquiries"><Button className="shadow-sm"><Bell className="h-4 w-4" /> New Inquiry</Button></Link>
           </div>
         }
       />
@@ -219,7 +219,7 @@ export function Dashboard() {
       </div>
       <div className="mt-6 grid gap-5">
         <div className="admin-panel overflow-hidden">
-          <WidgetHeader title="Recent Inquiries" href="/admin/inquiries" />
+          <WidgetHeader title="Recent Inquiries" href="/admin/service-desk?tab=inquiries" />
           {recentInquiries.length ? (
             <>
               <div className="hidden lg:block">
@@ -248,7 +248,7 @@ export function Dashboard() {
                     {recentInquiries.map((inquiry) => (
                       <tr key={inquiry.id} className={cn("bg-white transition hover:bg-primary-50/50", inquiry.status === "New" && "bg-primary-50/30")}>
                         <td className="px-4 py-4 align-middle">
-                          <Link href={`/admin/inquiries?focus=${inquiry.id}`} className="font-extrabold text-primary-700 hover:text-primary-800">
+                        <Link href={`/admin/service-desk?tab=inquiries&focus=${inquiry.id}`} className="font-extrabold text-primary-700 hover:text-primary-800">
                             {inquiry.reference_number}
                           </Link>
                         </td>
@@ -270,10 +270,10 @@ export function Dashboard() {
                         <td className="whitespace-nowrap px-3 py-4 align-middle text-muted">{formatDate(inquiry.created_at)}</td>
                         <td className="px-4 py-4 align-middle">
                           <div className="flex items-center justify-end gap-1.5">
-                            <CompactLink href={`/admin/inquiries?focus=${inquiry.id}`}>
+                            <CompactLink href={`/admin/service-desk?tab=inquiries&focus=${inquiry.id}`}>
                               View
                             </CompactLink>
-                            <CompactLink href={`/admin/quotation-builder?inquiry=${inquiry.id}`} primary>
+                            <CompactLink href={`/admin/quotations?action=create&inquiry=${inquiry.id}`} primary>
                               Quote
                             </CompactLink>
                           </div>
@@ -288,7 +288,7 @@ export function Dashboard() {
                   <article key={inquiry.id} className="grid gap-3 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <Link href={`/admin/inquiries?focus=${inquiry.id}`} className="font-extrabold text-primary-700">
+                        <Link href={`/admin/service-desk?tab=inquiries&focus=${inquiry.id}`} className="font-extrabold text-primary-700">
                           {inquiry.reference_number}
                         </Link>
                         <p className="mt-1 font-semibold text-ink">{inquiry.customer_name}</p>
@@ -300,9 +300,9 @@ export function Dashboard() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <span className="text-sm text-muted">{formatDate(inquiry.created_at)}</span>
                       <span className="flex flex-wrap gap-2">
-                        <CompactLink href={`/admin/inquiries?focus=${inquiry.id}`}>View</CompactLink>
+                        <CompactLink href={`/admin/service-desk?tab=inquiries&focus=${inquiry.id}`}>View</CompactLink>
                         <CompactLink href={inquiry.customer_id ? `/admin/customers/${inquiry.customer_id}` : `/admin/customers?phone=${encodeURIComponent(inquiry.contact_number)}`}>Customer</CompactLink>
-                        <CompactLink href={`/admin/quotation-builder?inquiry=${inquiry.id}`} primary>Quote</CompactLink>
+                        <CompactLink href={`/admin/quotations?action=create&inquiry=${inquiry.id}`} primary>Quote</CompactLink>
                       </span>
                     </div>
                   </article>
@@ -318,7 +318,7 @@ export function Dashboard() {
         </div>
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="admin-panel overflow-hidden">
-            <WidgetHeader title="Upcoming Services" href="/admin/service-schedule" />
+            <WidgetHeader title="Upcoming Services" href="/admin/service-desk?tab=schedule" />
             <div className="grid gap-1 p-4">
               {dueSchedules.slice(0, 5).map((schedule) => (
                 <div key={schedule.id} className="rounded-lg px-3 py-3 transition hover:bg-slate-50">
@@ -340,7 +340,7 @@ export function Dashboard() {
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">
                         <CompactLink href={`/admin/customers/${schedule.customer_id}`}>Customer</CompactLink>
-                        <CompactLink href={`/admin/quotation-builder?customer=${schedule.customer_id}`}>Quote</CompactLink>
+                        <CompactLink href={`/admin/quotations?action=create&customer=${schedule.customer_id}`}>Quote</CompactLink>
                         <Button size="sm" variant="success" className="min-h-9 px-3 text-xs" onClick={() => markCompleted(schedule)}>
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Done

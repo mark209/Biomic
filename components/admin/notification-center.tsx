@@ -21,9 +21,9 @@ function notificationKey(notification: Pick<Notification, "type" | "related_inqu
 }
 
 function notificationHref(notification: Notification) {
-  if (notification.related_schedule_id) return `/admin/service-schedule?focus=${notification.related_schedule_id}`;
+  if (notification.related_schedule_id) return `/admin/service-desk?tab=schedule&focus=${notification.related_schedule_id}`;
   if (notification.related_customer_id) return `/admin/customers/${notification.related_customer_id}`;
-  if (notification.related_inquiry_id) return `/admin/inquiries?focus=${notification.related_inquiry_id}`;
+  if (notification.related_inquiry_id) return `/admin/service-desk?tab=inquiries&focus=${notification.related_inquiry_id}`;
   if (notification.related_quotation_id) return "/admin/quotations";
   return "/admin";
 }
